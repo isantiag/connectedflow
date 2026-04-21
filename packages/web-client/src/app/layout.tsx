@@ -8,7 +8,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'ConnectedFlow',
+  title: 'ConnectedICD',
   description: 'AI-Driven ICD Management Platform',
 };
 

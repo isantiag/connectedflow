@@ -21,12 +21,15 @@ import { Button } from '@/components/ui/button';
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/' },
   { icon: Zap, label: 'Signals', href: '/signals' },
+  { icon: Box, label: 'N² Matrix', href: '/n2-matrix' },
   { icon: Radio, label: 'Live Data', href: '/live' },
   { icon: Box, label: 'Wiring', href: '/wiring' },
+  { icon: FileText, label: 'Ingestion', href: '/ingestion' },
   { icon: FileText, label: 'Documents', href: '/documents' },
   { icon: GitBranch, label: 'Baselines', href: '/baselines' },
   { icon: Link2, label: 'Traceability', href: '/traceability' },
   { icon: Shield, label: 'Workflows', href: '/workflows' },
+  { icon: Activity, label: 'AI Analysis', href: '/ai-analysis' },
   { icon: Activity, label: 'Anomalies', href: '/anomalies' },
   { icon: Settings, label: 'Settings', href: '/settings' },
 ];
@@ -43,7 +46,7 @@ export function Sidebar() {
       <div className="flex h-14 items-center justify-between px-3">
         {!collapsed && (
           <span className="text-sm font-semibold tracking-tight">
-            ConnectedFlow
+            ConnectedICD
           </span>
         )}
         <Button
