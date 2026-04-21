@@ -105,3 +105,59 @@ async def export_signals_url(project_id: str = "") -> str:
 async def list_workflows() -> str:
     """List approval workflows."""
     return json.dumps(await _api("GET", "/api/workflows"), indent=2)
+
+# ── Universal Ingestion ───────────────────────────────────────────
+
+@mcp.tool()
+async def ingest_file(file_path: str) -> str:
+    """Ingest any ICD file (Excel, Word, PDF, DBC, CSV) — AI extracts signals automatically. Supports Vector CANdb++, Siemens Capital exports, ARINC 429 label tables, any proprietary format."""
+    import httpx
+    async with httpx.AsyncClient() as c:
+        with open(file_path, 'rb') as f:
+            r = await c.post(f"{API_URL}/api/ingest", files={"file": (file_path.split('/')[-1], f)}, timeout=120)
+            return json.dumps(r.json(), indent=2)
+
+@mcp.tool()
+async def preview_ingestion(file_path: str) -> str:
+    """Preview what signals would be extracted from a file without importing."""
+    import httpx
+    async with httpx.AsyncClient() as c:
+        with open(file_path, 'rb') as f:
+            r = await c.post(f"{API_URL}/api/ingest/preview", files={"file": (file_path.split('/')[-1], f)}, timeout=120)
+            return json.dumps(r.json(), indent=2)
+
+@mcp.tool()
+async def ai_change_impact(signal_id: str) -> str:
+    """Analyze the impact of changing a signal — traces all connected systems, buses, connectors and generates an impact report."""
+    # Get the signal
+    signal = await _api("GET", f"/api/signals/{signal_id}")
+    if not signal: return json.dumps({"error": "Signal not found"})
+    
+    # Get all signals to find connections
+    all_signals = await _api("GET", "/api/signals")
+    source = signal.get("logical", {}).get("sourceSystem", signal.get("sourceSystem", ""))
+    dest = signal.get("logical", {}).get("destSystem", signal.get("destSystem", ""))
+    protocol = signal.get("transport", {}).get("protocol", signal.get("protocol", ""))
+    
+    # Find all signals on the same bus/interface
+    same_bus = [s for s in all_signals if s.get("transport", {}).get("protocol") == protocol and (s.get("logical", {}).get("sourceSystem") == source or s.get("logical", {}).get("destSystem") == dest)]
+    # Find all signals involving the same systems
+    same_systems = [s for s in all_signals if s.get("logical", {}).get("sourceSystem") in (source, dest) or s.get("logical", {}).get("destSystem") in (source, dest)]
+    
+    affected_systems = set()
+    for s in same_systems:
+        affected_systems.add(s.get("logical", {}).get("sourceSystem", ""))
+        affected_systems.add(s.get("logical", {}).get("destSystem", ""))
+    affected_systems.discard("")
+    
+    return json.dumps({
+        "signal": signal.get("name", signal_id),
+        "source_system": source,
+        "dest_system": dest,
+        "protocol": protocol,
+        "same_bus_signals": len(same_bus),
+        "affected_systems": list(affected_systems),
+        "total_affected_signals": len(same_systems),
+        "impact_level": "high" if len(affected_systems) > 3 else "medium" if len(affected_systems) > 1 else "low",
+        "recommendation": f"Changing {signal.get('name', '')} affects {len(affected_systems)} systems and {len(same_systems)} signals. Notify: {', '.join(affected_systems)}"
+    }, indent=2)
