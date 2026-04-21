@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src"
+  },
+  "include": ["src"],
+  "references": [
+    { "path": "../shared-types" },
+    { "path": "../core-services" },
+    { "path": "../ai-services" },
+    { "path": "../integration-services" }
+  ]
+}

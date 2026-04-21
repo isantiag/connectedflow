@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ConnectedFlow — Product Presentation</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; overflow: hidden; }
+  
+  .slide { display: none; width: 100vw; height: 100vh; padding: 60px 80px; flex-direction: column; justify-content: center; }
+  .slide.active { display: flex; }
+  
+  .slide-number { position: fixed; bottom: 30px; right: 40px; font-size: 14px; color: #64748b; }
+  .nav-hint { position: fixed; bottom: 30px; left: 40px; font-size: 13px; color: #475569; }
+  
+  h1 { font-size: 52px; font-weight: 700; letter-spacing: -1px; line-height: 1.1; }
+  h2 { font-size: 38px; font-weight: 600; letter-spacing: -0.5px; margin-bottom: 32px; }
+  h3 { font-size: 22px; font-weight: 600; margin-bottom: 12px; color: #93c5fd; }
+  p { font-size: 20px; line-height: 1.6; color: #94a3b8; max-width: 800px; }
+  .subtitle { font-size: 24px; color: #60a5fa; margin-top: 16px; font-weight: 500; }
+  .tagline { font-size: 18px; color: #64748b; margin-top: 24px; }
+  
+  .accent { color: #3b82f6; }
+  .green { color: #22c55e; }
+  .amber { color: #f59e0b; }
+  .red { color: #ef4444; }
+  
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 32px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 28px; margin-top: 32px; }
+  
+  .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 28px; }
+  .card h3 { margin-bottom: 8px; }
+  .card p { font-size: 15px; color: #94a3b8; }
+  
+  .example-box { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 20px; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 13px; line-height: 1.7; color: #cbd5e1; overflow-x: auto; margin-top: 16px; white-space: pre; }
+  
+  .layer-row { display: flex; gap: 16px; margin-top: 20px; }
+  .layer-badge { padding: 6px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; }
+  .layer-logical { background: #1e3a5f; color: #93c5fd; }
+  .layer-transport { background: #3b1f5e; color: #c4b5fd; }
+  .layer-physical { background: #1a3a2a; color: #86efac; }
+  
+  .flow-arrow { display: flex; align-items: center; gap: 16px; margin-top: 24px; flex-wrap: wrap; }
+  .flow-step { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 12px 20px; font-size: 14px; font-weight: 500; }
+  .flow-step.active-step { border-color: #3b82f6; background: #1e3a5f; color: #93c5fd; }
+  .arrow { color: #475569; font-size: 20px; }
+  
+  .stat-row { display: flex; gap: 40px; margin-top: 32px; }
+  .stat { text-align: center; }
+  .stat-value { font-size: 48px; font-weight: 700; color: #3b82f6; }
+  .stat-label { font-size: 14px; color: #64748b; margin-top: 4px; }
+  
+  .table-example { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 14px; }
+  .table-example th { text-align: left; padding: 10px 16px; background: #1e293b; color: #93c5fd; font-weight: 600; border-bottom: 1px solid #334155; }
+  .table-example td { padding: 10px 16px; border-bottom: 1px solid #1e293b; color: #cbd5e1; }
+  .table-example tr:hover td { background: #1e293b; }
+  
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  .badge-green { background: #052e16; color: #4ade80; }
+  .badge-amber { background: #451a03; color: #fbbf24; }
+  .badge-red { background: #450a0a; color: #f87171; }
+  .badge-blue { background: #172554; color: #60a5fa; }
+  
+  .logo { font-size: 16px; font-weight: 700; color: #3b82f6; letter-spacing: -0.5px; position: fixed; top: 30px; left: 40px; }
+</style>
+</head>
+<body>
+
+<div class="logo">ConnectedFlow</div>
+<div class="nav-hint">← → arrow keys to navigate</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 1: Title -->
+<!-- ============================================================ -->
+<div class="slide active" id="slide1">
+  <h1>ConnectedFlow</h1>
+  <div class="subtitle">AI-Driven ICD Management for Aerospace</div>
+  <p style="margin-top: 24px;">
+    The first affordable platform that unifies all three ICD layers — logical, transport, and physical — 
+    in a single AI-native environment. Built for eVTOL, Part 23, and Part 25 programs.
+  </p>
+  <div class="stat-row">
+    <div class="stat"><div class="stat-value">3</div><div class="stat-label">ICD Layers Unified</div></div>
+    <div class="stat"><div class="stat-value">4</div><div class="stat-label">Avionics Protocols</div></div>
+    <div class="stat"><div class="stat-value">95%</div><div class="stat-label">Labor Reduction Target</div></div>
+    <div class="stat"><div class="stat-value">AI</div><div class="stat-label">Powered Extraction</div></div>
+  </div>
+  <div class="tagline">Replacing Excel-bridged toolchains with intelligent, connected ICD management.</div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 2: The Problem & Three-Layer Model -->
+<!-- ============================================================ -->
+<div class="slide" id="slide2">
+  <h2>The Problem: Fragmented ICD Toolchains</h2>
+  <p>Most aerospace programs use 2–4 disconnected tools bridged by Excel spreadsheets. This is where integration errors occur.</p>
+  
+  <div class="grid-2" style="margin-top: 32px;">
+    <div>
+      <h3>Typical Toolchain (Today)</h3>
+      <div class="flow-arrow">
+        <div class="flow-step">DOORS/Jama<br><span style="font-size:11px;color:#64748b">Requirements</span></div>
+        <div class="arrow">→</div>
+        <div class="flow-step">Cameo/Capella<br><span style="font-size:11px;color:#64748b">Architecture</span></div>
+        <div class="arrow">→</div>
+        <div class="flow-step" style="border-color:#ef4444"><span class="red">Excel ICDs</span><br><span style="font-size:11px;color:#64748b">Error-prone</span></div>
+        <div class="arrow">→</div>
+        <div class="flow-step">Capital/E3<br><span style="font-size:11px;color:#64748b">Wiring</span></div>
+        <div class="arrow">→</div>
+        <div class="flow-step">ADS2<br><span style="font-size:11px;color:#64748b">Test Bench</span></div>
+      </div>
+    </div>
+    <div>
+      <h3>ConnectedFlow (Unified)</h3>
+      <div class="card" style="margin-top: 12px;">
+        <div class="layer-row">
+          <span class="layer-badge layer-logical">Logical Layer</span>
+          <span style="font-size:13px;color:#94a3b8">Signal definitions, ranges, units, refresh rates</span>
+        </div>
+        <div class="layer-row">
+          <span class="layer-badge layer-transport">Transport Layer</span>
+          <span style="font-size:13px;color:#94a3b8">ARINC 429 / CAN / 1553 / AFDX encoding</span>
+        </div>
+        <div class="layer-row">
+          <span class="layer-badge layer-physical">Physical Layer</span>
+          <span style="font-size:13px;color:#94a3b8">Connectors, pins, wire gauge, cable bundles</span>
+        </div>
+        <p style="margin-top:16px;font-size:13px;">All in one normalized database with AI-powered validation.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 3: Example — Creating a Signal -->
+<!-- ============================================================ -->
+<div class="slide" id="slide3">
+  <h2>Example: Defining an Airspeed Signal</h2>
+  <p>A single signal defined across all three layers with automatic cross-layer validation.</p>
+  
+  <div class="grid-3" style="margin-top: 24px;">
+    <div class="card">
+      <h3 style="color:#93c5fd;">Logical Layer</h3>
+      <table class="table-example">
+        <tr><td style="color:#64748b">Name</td><td>AIRSPEED_IAS</td></tr>
+        <tr><td style="color:#64748b">Data Type</td><td>float32</td></tr>
+        <tr><td style="color:#64748b">Range</td><td>0 – 500 knots</td></tr>
+        <tr><td style="color:#64748b">Refresh Rate</td><td>50 Hz</td></tr>
+        <tr><td style="color:#64748b">Source → Dest</td><td>ADC → PFD</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <h3 style="color:#c4b5fd;">Transport Layer</h3>
+      <table class="table-example">
+        <tr><td style="color:#64748b">Protocol</td><td>ARINC 429</td></tr>
+        <tr><td style="color:#64748b">Label</td><td>205 (octal)</td></tr>
+        <tr><td style="color:#64748b">Bit Offset</td><td>0</td></tr>
+        <tr><td style="color:#64748b">Bit Length</td><td>16</td></tr>
+        <tr><td style="color:#64748b">Encoding</td><td>BNR, scale 0.1</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <h3 style="color:#86efac;">Physical Layer</h3>
+      <table class="table-example">
+        <tr><td style="color:#64748b">Connector</td><td>J1-ADC</td></tr>
+        <tr><td style="color:#64748b">Pin</td><td>A12</td></tr>
+        <tr><td style="color:#64748b">Wire Gauge</td><td>22 AWG</td></tr>
+        <tr><td style="color:#64748b">Cable Bundle</td><td>WB-101</td></tr>
+        <tr><td style="color:#64748b">Shielding</td><td>Braided</td></tr>
+      </table>
+    </div>
+  </div>
+  
+  <div class="card" style="margin-top: 24px; border-color: #22c55e40;">
+    <h3 style="color:#22c55e;">✓ Cross-Layer Validation Passed</h3>
+    <p style="font-size:14px;">
+      Logical range [0, 500] fits within BNR 16-bit capacity (max 6553.5 with scale 0.1) · 
+      22 AWG supports ARINC 429 data rate (100 kbps) · 
+      Bit layout 0+16 = 16 ≤ 32-bit ARINC 429 word
+    </p>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 4: Example — AI Document Extraction -->
+<!-- ============================================================ -->
+<div class="slide" id="slide4">
+  <h2>Example: AI-Powered ICD Extraction</h2>
+  <p>Upload a legacy ICD document and let AI extract signal definitions automatically.</p>
+  
+  <div class="grid-2" style="margin-top: 24px;">
+    <div>
+      <h3>Step 1: Upload Document</h3>
+      <div class="card">
+        <p style="font-size:14px;text-align:center;padding:20px 0;">
+          📄 <strong>ADC_ICD_Rev3.pdf</strong><br>
+          <span style="color:#64748b">42 pages · 15 signal tables detected</span>
+        </p>
+      </div>
+      
+      <h3 style="margin-top:24px;">Step 2: AI Extraction Pipeline</h3>
+      <div class="flow-arrow">
+        <div class="flow-step">Upload</div>
+        <div class="arrow">→</div>
+        <div class="flow-step">Parse PDF</div>
+        <div class="arrow">→</div>
+        <div class="flow-step active-step">LLM Extraction</div>
+        <div class="arrow">→</div>
+        <div class="flow-step">Review</div>
+        <div class="arrow">→</div>
+        <div class="flow-step">Confirm</div>
+      </div>
+    </div>
+    <div>
+      <h3>Step 3: Review Extracted Signals</h3>
+      <div class="card" style="padding:16px;">
+        <table class="table-example">
+          <thead>
+            <tr><th>Signal</th><th>Confidence</th><th>Status</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>AIRSPEED_IAS</td>
+              <td><span class="badge badge-green">95%</span></td>
+              <td>Auto-confirmed</td>
+            </tr>
+            <tr>
+              <td>ALTITUDE_BARO</td>
+              <td><span class="badge badge-green">92%</span></td>
+              <td>Auto-confirmed</td>
+            </tr>
+            <tr>
+              <td>HEADING_MAG</td>
+              <td><span class="badge badge-green">88%</span></td>
+              <td>Auto-confirmed</td>
+            </tr>
+            <tr>
+              <td>VERT_SPEED</td>
+              <td><span class="badge badge-amber">62%</span></td>
+              <td>⚠ Needs review</td>
+            </tr>
+            <tr>
+              <td>UNKNOWN_PARAM</td>
+              <td><span class="badge badge-red">35%</span></td>
+              <td>⚠ Needs review</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="font-size:14px;margin-top:12px;">
+        <span class="green">3 signals</span> auto-confirmed (≥80% confidence)<br>
+        <span class="amber">2 signals</span> flagged for manual review
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 5: Example — Anomaly Detection & Live Monitoring -->
+<!-- ============================================================ -->
+<div class="slide" id="slide5">
+  <h2>Example: Real-Time Anomaly Detection</h2>
+  <p>ConnectedFlow continuously validates your ICD and catches issues before they reach the test bench.</p>
+  
+  <div class="grid-2" style="margin-top: 24px;">
+    <div>
+      <h3>Detected Anomalies</h3>
+      
+      <div class="card" style="border-color:#ef444440;margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <strong>Bus Overload</strong>
+          <span class="badge badge-red">ERROR</span>
+        </div>
+        <p style="font-size:13px;margin-top:8px;">
+          CAN_BUS_1 utilization is 127%, exceeding 100% capacity.<br>
+          Used: 1,270,000 bps of 1,000,000 bps total.
+        </p>
+        <p style="font-size:12px;color:#60a5fa;margin-top:8px;">
+          💡 Suggestion: Move 3 low-priority signals to CAN_BUS_2 to reduce utilization below 80%.
+        </p>
+      </div>
+      
+      <div class="card" style="border-color:#f59e0b40;margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <strong>Timing Mismatch</strong>
+          <span class="badge badge-amber">WARNING</span>
+        </div>
+        <p style="font-size:13px;margin-top:8px;">
+          ENGINE_TEMP refresh rate (100 Hz) exceeds CAN cycle rate (50 Hz from 20ms cycle time).
+        </p>
+        <p style="font-size:12px;color:#60a5fa;margin-top:8px;">
+          💡 Suggestion: Reduce refresh rate to 50 Hz or decrease cycle time to 10ms.
+        </p>
+      </div>
+      
+      <div class="card" style="border-color:#ef444440;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <strong>Wire Gauge Incompatibility</strong>
+          <span class="badge badge-red">ERROR</span>
+        </div>
+        <p style="font-size:13px;margin-top:8px;">
+          AFDX_NAV signal uses 26 AWG wire (max 100 kbps) on ARINC 664 bus (100 Mbps).
+        </p>
+        <p style="font-size:12px;color:#60a5fa;margin-top:8px;">
+          💡 Suggestion: Upgrade to 20 AWG or thicker wire gauge.
+        </p>
+      </div>
+    </div>
+    
+    <div>
+      <h3>Live Data Monitor</h3>
+      <div class="grid-2" style="gap:12px;margin-top:12px;">
+        <div class="card" style="padding:16px;">
+          <div style="font-size:12px;color:#64748b;">AIRSPEED_IAS</div>
+          <div style="font-size:32px;font-weight:700;margin-top:4px;">247.3 <span style="font-size:14px;font-weight:400;color:#64748b">knots</span></div>
+          <div style="font-size:11px;color:#22c55e;margin-top:4px;">● In range</div>
+        </div>
+        <div class="card" style="padding:16px;">
+          <div style="font-size:12px;color:#64748b;">ALTITUDE_BARO</div>
+          <div style="font-size:32px;font-weight:700;margin-top:4px;">35,420 <span style="font-size:14px;font-weight:400;color:#64748b">ft</span></div>
+          <div style="font-size:11px;color:#22c55e;margin-top:4px;">● In range</div>
+        </div>
+        <div class="card" style="padding:16px;border-color:#f59e0b40;">
+          <div style="font-size:12px;color:#64748b;">ENGINE_TEMP</div>
+          <div style="font-size:32px;font-weight:700;color:#f59e0b;margin-top:4px;">892 <span style="font-size:14px;font-weight:400;color:#64748b">°C</span></div>
+          <div style="font-size:11px;color:#f59e0b;margin-top:4px;">⚠ Near max (900°C)</div>
+        </div>
+        <div class="card" style="padding:16px;border-color:#ef444440;">
+          <div style="font-size:12px;color:#64748b;">FUEL_FLOW_L</div>
+          <div style="font-size:32px;font-weight:700;color:#ef4444;margin-top:4px;">-12.4 <span style="font-size:14px;font-weight:400;color:#64748b">kg/h</span></div>
+          <div style="font-size:11px;color:#ef4444;margin-top:4px;">✕ Below min (0 kg/h)</div>
+        </div>
+      </div>
+      <p style="font-size:13px;margin-top:16px;color:#64748b;">
+        🔴 Recording · Session 00:14:32 · 4 parameters · 2 deviations detected
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- Navigation Script -->
+<!-- ============================================================ -->
+<div class="slide-number" id="slideNum">1 / 5</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  let current = 0;
+  
+  function showSlide(n) {
+    slides[current].classList.remove('active');
+    current = ((n % slides.length) + slides.length) % slides.length;
+    slides[current].classList.add('active');
+    document.getElementById('slideNum').textContent = `${current + 1} / ${slides.length}`;
+  }
+  
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); showSlide(current + 1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); showSlide(current - 1); }
+  });
+  
+  document.addEventListener('click', (e) => {
+    if (e.clientX > window.innerWidth / 2) showSlide(current + 1);
+    else showSlide(current - 1);
+  });
+</script>
+
+</body>
+</html>

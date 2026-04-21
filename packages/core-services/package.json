@@ -1,0 +1,24 @@
+{
+  "name": "@connectedflow/core-services",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint src/",
+    "test": "vitest --run",
+    "clean": "rm -rf dist .turbo"
+  },
+  "dependencies": {
+    "@connectedflow/shared-types": "*",
+    "ioredis": "^5.10.1",
+    "knex": "^3.2.8",
+    "pg": "^8.20.0"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.20.0",
+    "fast-check": "^3.23.2",
+    "vitest": "^4.1.2"
+  }
+}

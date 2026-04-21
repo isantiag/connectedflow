@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ConnectedFlow — Phase 2 Interactive Demo</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f8fafc;color:#0f172a;overflow:hidden;height:100vh;width:100vw;}
+.demo-container{width:100%;height:100%;display:flex;flex-direction:column;}
+.demo-header{background:#0f172a;color:#e2e8f0;padding:8px 20px;display:flex;align-items:center;justify-content:space-between;font-size:13px;}
+.demo-header .brand{font-weight:700;color:#3b82f6;font-size:15px;}
+.demo-header .controls{display:flex;gap:8px;align-items:center;}
+.demo-header button{background:#1e293b;border:1px solid #334155;color:#e2e8f0;padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-family:inherit;}
+.demo-header button:hover{background:#334155;}
+.demo-header button.active-btn{background:#3b82f6;border-color:#3b82f6;color:#fff;}
+.progress-bar{height:3px;background:#1e293b;width:100%;}
+.progress-fill{height:100%;background:#3b82f6;transition:width 0.3s ease;width:0%;}
+.app-frame{flex:1;display:flex;overflow:hidden;}
+</style>
+</head>
+<body>
+<div class="demo-container">
+  <div class="demo-header">
+    <span class="brand">ConnectedFlow Phase 2 Demo</span>
+    <div class="controls">
+      <span id="scene-label" style="color:#94a3b8;margin-right:12px;">Scene 1 of 8</span>
+      <button onclick="prevScene()">← Prev</button>
+      <button class="active-btn" onclick="toggleAutoPlay()" id="autoBtn">▶ Auto Play</button>
+      <button onclick="nextScene()">Next →</button>
+    </div>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+  <div class="app-frame" id="appFrame"></div>
+</div>
+</body>
+</html>
+<script>
+// =========================================================================
+// Helper functions for building UI components
+// =========================================================================
+
+function sidebar(active) {
+  const items = [
+    {icon:'◻',label:'Dashboard'},{icon:'📁',label:'Projects'},{icon:'⚡',label:'Signals'},
+    {icon:'🔌',label:'Connectors'},{icon:'📡',label:'Bus Analysis'},{icon:'🔋',label:'Power Budget'},
+    {icon:'⚖',label:'Mass & Cost'},{icon:'📊',label:'Trade Studies'},{icon:'🔗',label:'Wiring'},
+    {icon:'⚙',label:'Settings'}
+  ];
+  return `<div style="width:200px;background:#fff;border-right:1px solid #e2e8f0;display:flex;flex-direction:column;flex-shrink:0;">
+    <div style="padding:16px;font-size:15px;font-weight:700;color:#3b82f6;border-bottom:1px solid #e2e8f0;">ConnectedFlow</div>
+    <nav style="flex:1;padding:8px;">
+      ${items.map(i => `<a style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:6px;font-size:13px;text-decoration:none;color:${i.label===active?'#1e40af':'#64748b'};background:${i.label===active?'#eff6ff':'transparent'};font-weight:${i.label===active?'500':'400'};margin-bottom:2px;">${i.icon} ${i.label}</a>`).join('')}
+    </nav>
+  </div>`;
+}
+
+function topbar() {
+  return `<div style="height:48px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;padding:0 16px;gap:8px;background:#fff;">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:5px 12px;font-size:12px;color:#1e40af;font-weight:500;">AeroX eVTOL — WD-001</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div style="width:28px;height:28px;border-radius:6px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;">🌙</div>
+      <div style="width:28px;height:28px;border-radius:6px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;">🔔</div>
+      <div style="width:28px;height:28px;border-radius:50%;background:#3b82f6;display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;font-weight:600;">JS</div>
+    </div>
+  </div>`;
+}
+
+function statCard(label, value, style, color) {
+  return `<div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;${style}">
+    <div style="font-size:12px;color:#64748b;font-weight:500;">${label}</div>
+    <div style="font-size:28px;font-weight:700;margin-top:4px;color:${color||'#0f172a'};">${value}</div>
+  </div>`;
+}
+
+function fieldInput(label, value, animClass) {
+  return `<div style="margin-bottom:14px;">
+    <label style="font-size:12px;font-weight:500;color:#475569;display:block;margin-bottom:4px;">${label}</label>
+    <div style="border:1px solid #e2e8f0;border-radius:6px;padding:8px 12px;font-size:13px;color:#0f172a;background:#fff;">${animClass?`<span class="${animClass}"></span><span class="cursor" style="animation:blink 0.6s infinite;">|</span>`:value}</div>
+  </div>`;
+}
+
+function selectInput(label, value) {
+  return `<div style="margin-bottom:14px;">
+    <label style="font-size:12px;font-weight:500;color:#475569;display:block;margin-bottom:4px;">${label}</label>
+    <div style="border:1px solid #e2e8f0;border-radius:6px;padding:8px 12px;font-size:13px;color:#0f172a;background:#fff;display:flex;justify-content:space-between;align-items:center;">${value}<span style="color:#94a3b8;">▾</span></div>
+  </div>`;
+}
+
+// =========================================================================
+// Scene definitions — 8 scenes for Phase 2 features
+// =========================================================================
+const scenes = [
+// ---- SCENE 1: Project Selection & Creation ----
+{
+  title: "Scene 1 of 8 — Project Selection & Creation",
+  duration: 6000,
+  render: () => `
+  <div style="display:flex;width:100%;height:100%;">
+    ${sidebar('Projects')}
+    <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+      ${topbar()}
+      <div style="flex:1;padding:24px;overflow-y:auto;background:#f8fafc;">
+        <div style="animation:fadeUp 0.4s ease;">
+          <h1 style="font-size:22px;font-weight:600;">Projects</h1>
+          <p style="font-size:13px;color:#64748b;margin-top:4px;">Manage aircraft programs and switch between projects.</p>
+        </div>
+        <!-- Project Selector -->
+        <div style="margin-top:20px;animation:fadeUp 0.4s ease 0.2s both;">
+          <label style="font-size:12px;font-weight:500;color:#475569;display:block;margin-bottom:4px;">Active Project</label>
+          <div style="background:#fff;border:1px solid #3b82f6;border-radius:8px;padding:10px 14px;font-size:14px;font-weight:500;color:#1e40af;display:flex;justify-content:space-between;align-items:center;box-shadow:0 0 0 3px rgba(59,130,246,0.1);max-width:400px;">
+            AeroX eVTOL — WD-001 <span style="color:#3b82f6;">▾</span>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:24px;">
+          <!-- Create New Project Dialog -->
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:20px;animation:fadeUp 0.4s ease 0.4s both;">
+            <div style="font-size:15px;font-weight:600;margin-bottom:16px;">Create New Project</div>
+            <div style="margin-bottom:14px;">
+              <label style="font-size:12px;font-weight:500;color:#475569;display:block;margin-bottom:4px;">Project Name</label>
+              <div style="border:1px solid #3b82f6;border-radius:6px;padding:8px 12px;font-size:13px;color:#0f172a;background:#fff;box-shadow:0 0 0 3px rgba(59,130,246,0.1);">
+                <span class="typed-name"></span><span style="animation:blink 0.6s infinite;color:#3b82f6;">|</span>
+              </div>
+            </div>
+            ${selectInput('Aircraft Type','eVTOL')}
+            ${selectInput('Certification Basis','FAR 23')}
+            ${selectInput('Program Phase','Concept')}
+            <div style="margin-top:8px;animation:showBtn 0.3s ease 3.5s forwards;opacity:0;">
+              <div style="background:#3b82f6;color:#fff;text-align:center;padding:8px;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;">Create Project</div>
+            </div>
+          </div>
+          <!-- Project Dashboard Cards -->
+          <div style="animation:fadeUp 0.4s ease 0.6s both;">
+            <div style="font-size:15px;font-weight:600;margin-bottom:16px;">Project Dashboard</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              ${statCard('Signals','247','animation:fadeUp 0.4s ease 0.8s both;','#3b82f6')}
+              ${statCard('Buses','12','animation:fadeUp 0.4s ease 1s both;','#8b5cf6')}
+              ${statCard('Equipment','28','animation:fadeUp 0.4s ease 1.2s both;','#22c55e')}
+              ${statCard('Configurations','2','animation:fadeUp 0.4s ease 1.4s both;','#f59e0b')}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <style>
+    @keyframes fadeUp{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+    @keyframes blink{0%,100%{opacity:1;}50%{opacity:0;}}
+    @keyframes showBtn{to{opacity:1;}}
+    .typed-name::after{content:'AeroX eVTOL';animation:revealName 2s steps(11) 0.8s forwards;overflow:hidden;display:inline-block;width:0;white-space:nowrap;}
+    @keyframes revealName{to{width:90px;}}
+  </style>`
+},
+// ---- SCENE 2: Project Configurations (WD-001 vs WD-002) ----
+{
+  title: "Scene 2 of 8 — Project Configurations",
+  duration: 6000,
+  render: () => `
+  <div style="display:flex;width:100%;height:100%;">
+    ${sidebar('Projects')}
+    <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+      ${topbar()}
+      <div style="flex:1;padding:24px;overflow-y:auto;background:#f8fafc;">
+        <div style="display:flex;justify-content:space-between;align-items:center;animation:fadeUp 0.3s ease;">
+          <div>
+            <h1 style="font-size:22px;font-weight:600;">Configurations</h1>
+            <p style="font-size:13px;color:#64748b;margin-top:4px;">AeroX eVTOL — Equipment arrangement variants</p>
+          </div>
+          <div class="clone-btn" style="background:#3b82f6;color:#fff;border-radius:6px;padding:8px 16px;font-size:13px;font-weight:500;cursor:pointer;animation:pulseClone 2s ease 1s both;">⧉ Clone Configuration</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:24px;">
+          <!-- WD-001 Card -->
+          <div style="background:#fff;border:2px solid #3b82f6;border-radius:10px;overflow:hidden;animation:fadeUp 0.4s ease 0.3s both;">
+            <div style="background:#eff6ff;padding:14px 18px;border-bottom:1px solid #bfdbfe;">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div style="font-size:16px;font-weight:700;color:#1e40af;">WD-001</div>
+                <span style="background:#dbeafe;color:#1e40af;padding:3px 10px;border-radius:4px;font-size:11px;font-weight:600;">Baseline Configuration</span>
+              </div>
+            </div>
+            <div style="padding:18px;">
+              <div style="font-size:13px;font-weight:600;color:#475569;margin-bottom:12px;">Equipment Arrangement</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+                <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px;"><span style="font-weight:600;">1×</span> AHRS</div>
+                <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px;"><span style="font-weight:600;">2×</span> IRS</div>
+                <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px;"><span style="font-weight:600;">3×</span> ADC</div>
+                <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px;"><span style="font-weight:600;">2×</span> FMC</div>
+              </div>
+              <div style="border-top:1px solid #e2e8f0;padding-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;">
+                <div><span style="color:#64748b;">Equipment:</span> <span style="font-weight:600;">28</span></div>
+                <div><span style="color:#64748b;">Signals:</span> <span style="font-weight:600;">247</span></div>
+                <div><span style="color:#64748b;">Est. Weight:</span> <span style="font-weight:600;">191.0 kg</span></div>
+                <div><span style="color:#64748b;">Est. Cost:</span> <span style="font-weight:600;">$1.50M</span></div>
+              </div>
+            </div>
+          </div>
+          <!-- WD-002 Card -->
+          <div class="wd002-card" style="background:#fff;border:2px solid #8b5cf6;border-radius:10px;overflow:hidden;animation:slideInClone 0.6s ease 2s both;opacity:0;">
+            <div style="background:#f5f3ff;padding:14px 18px;border-bottom:1px solid #c4b5fd;">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div style="font-size:16px;font-weight:700;color:#6d28d9;">WD-002</div>
+                <span style="background:#ede9fe;color:#6d28d9;padding:3px 10px;border-radius:4px;font-size:11px;font-weight:600;">Redundancy Variant</span>
+              </div>
+            </div>
+            <div style="padding:18px;">
+              <div style="font-size:13px;font-weight:600;color:#475569;margin-bottom:12px;">Equipment Arrangement</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+                <div style="background:#f5f3ff;border:1px solid #c4b5fd;border-radius:6px;padding:8px 10px;font-size:12px;"><span style="font-weight:600;color:#6d28d9;">2×</span> AHRS</div>
+                <div style="background:#f5f3ff;border:1px solid #c4b5fd;border-radius:6px;padding:8px 10px;font-size:12px;"><span style="font-weight:600;color:#6d28d9;">1×</span> IRS</div>
+                <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px;"><span style="font-weight:600;">3×</span> ADC</div>
+                <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:8px 10px;font-size:12px;"><span style="font-weight:600;">2×</span> FMC</div>
+              </div>
+              <div style="border-top:1px solid #e2e8f0;padding-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;">
+                <div><span style="color:#64748b;">Equipment:</span> <span style="font-weight:600;">29</span></div>
+                <div><span style="color:#64748b;">Signals:</span> <span style="font-weight:600;">263</span></div>
+                <div><span style="color:#64748b;">Est. Weight:</span> <span style="font-weight:600;">198.4 kg</span></div>
+                <div><span style="color:#64748b;">Est. Cost:</span> <span style="font-weight:600;">$1.62M</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <style>
+    @keyframes fadeUp{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+    @keyframes slideInClone{from{opacity:0;transform:translateX(-30px) scale(0.95);}to{opacity:1;transform:translateX(0) scale(1);}}
+    @keyframes pulseClone{0%{box-shadow:none;}50%{box-shadow:0 0 0 6px rgba(59,130,246,0.2);}100%{box-shadow:none;}}
+  </style>`
+},
+// ---- SCENE 3: Connector Parts Database ----
+{
+  title: "Scene 3 of 8 — Connector Parts Database",
+  duration: 6000,
+  render: () => `
+  <div style="display:flex;width:100%;height:100%;">
+    ${sidebar('Connectors')}
+    <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+      ${topbar()}
+      <div style="flex:1;padding:24px;overflow-y:auto;background:#f8fafc;">
+        <div style="display:flex;justify-content:space-between;align-items:center;animation:fadeUp 0.3s ease;">
+          <div>
+            <h1 style="font-size:22px;font-weight:600;">Connector Parts Database</h1>
+            <p style="font-size:13px;color:#64748b;margin-top:4px;">Searchable catalog of aerospace connectors</p>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <div style="background:#fff;border:1px solid #e2e8f0;border-radius:6px;padding:6px 12px;font-size:13px;color:#64748b;">Import CSV</div>
+            <div style="background:#3b82f6;color:#fff;border-radius:6px;padding:6px 12px;font-size:13px;font-weight:500;">+ Add Connector</div>
+          </div>
+        </div>
+        <!-- Search Bar -->
+        <div style="margin-top:16px;display:flex;gap:8px;animation:fadeUp 0.3s ease 0.2s both;">
+          <div style="flex:1;border:1px solid #e2e8f0;border-radius:6px;padding:8px 12px 8px 32px;font-size:13px;color:#94a3b8;background:#fff url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2216%22 height=%2216%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%2394a3b8%22 stroke-width=%222%22><circle cx=%2211%22 cy=%2211%22 r=%228%22/><path d=%22m21 21-4.3-4.3%22/></svg>') 8px center no-repeat;">
+            <span style="animation:typeSearch 1.5s steps(8) 1s forwards;overflow:hidden;display:inline-block;width:0;white-space:nowrap;color:#0f172a;">Amphenol</span>
+          </div>
+        </div>
+        <!-- Connector Table -->
+        <div style="margin-top:16px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;animation:fadeUp 0.3s ease 0.4s both;">
+          <table style="width:100%;border-collapse:collapse;font-size:12px;">
+            <thead><tr style="background:#f8fafc;border-bottom:1px solid #e2e8f0;">
+              <th style="text-align:left;padding:10px 12px;font-weight:500;color:#64748b;">Part Number</th>
+              <th style="text-align:left;padding:10px 12px;font-weight:500;color:#64748b;">Supplier</th>
+              <th style="text-align:left;padding:10px 12px;font-weight:500;color:#64748b;">Type</th>
+              <th style="text-align:left;padding:10px 12px;font-weight:500;color:#64748b;">Pins</th>
+              <th style="text-align:left;padding:10px 12px;font-weight:500;color:#64748b;">Rating</th>
+              <th style="text-align:left;padding:10px 12px;font-weight:500;color:#64748b;">Weight</th>
+              <th style="text-align:left;padding:10px 12px;font-weight:500;color:#64748b;">Price</th>
+              <th style="width:80px;"></th>
+            </tr></thead>
+            <tbody>
+              <tr style="border-bottom:1px solid #f1f5f9;animation:highlightRow 2s ease 3s both;background:#eff6ff;">
+                <td style="padding:10px 12px;font-weight:500;color:#1e40af;">D38999/26WJ35SN</td>
+                <td style="padding:10px 12px;">Amphenol</td>
+                <td style="padding:10px 12px;">Circular</td>
+                <td style="padding:10px 12px;">79</td>
+                <td style="padding:10px 12px;"><span style="background:#f0fdf4;color:#166534;padding:2px 6px;border-radius:3px;font-size:10px;">MIL-DTL-38999</span></td>
+                <td style="padding:10px 12px;">142g</td>
+                <td style="padding:10px 12px;font-weight:500;">$285</td>
+                <td style="padding:10px 12px;"><div style="background:#3b82f6;color:#fff;padding:4px 8px;border-radius:4px;font-size:10px;text-align:center;cursor:pointer;animation:pulseLink 1.5s ease 3.5s infinite;">Link to Signal</div></td>
+              </tr>
+              <tr style="border-bottom:1px solid #f1f5f9;">
+                <td style="padding:10px 12px;font-weight:500;">MS27467T25F61P</td>
+                <td style="padding:10px 12px;">TE Connectivity</td>
+                <td style="padding:10px 12px;">Circular</td>
+                <td style="padding:10px 12px;">61</td>
+                <td style="padding:10px 12px;"><span style="background:#f0fdf4;color:#166534;padding:2px 6px;border-radius:3px;font-size:10px;">MIL-DTL-38999</span></td>
+                <td style="padding:10px 12px;">118g</td>
+                <td style="padding:10px 12px;font-weight:500;">$195</td>
+                <td style="padding:10px 12px;"><div style="background:#f1f5f9;color:#475569;padding:4px 8px;border-radius:4px;font-size:10px;text-align:center;">Link</div></td>
+              </tr>
+              <tr style="border-bottom:1px solid #f1f5f9;">
+                <td style="padding:10px 12px;font-weight:500;">D-Sub DA-15P</td>
+                <td style="padding:10px 12px;">ITT Cannon</td>
+                <td style="padding:10px 12px;">D-Sub</td>
+                <td style="padding:10px 12px;">15</td>
+                <td style="padding:10px 12px;"><span style="background:#f0fdf4;color:#166534;padding:2px 6px;border-radius:3px;font-size:10px;">MIL-DTL-24308</span></td>
+                <td style="padding:10px 12px;">28g</td>
+                <td style="padding:10px 12px;font-weight:500;">$42</td>
+                <td style="padding:10px 12px;"><div style="background:#f1f5f9;color:#475569;padding:4px 8px;border-radius:4px;font-size:10px;text-align:center;">Link</div></td>
+              </tr>
+              <tr style="border-bottom:1px solid #f1f5f9;">
+                <td style="padding:10px 12px;font-weight:500;">ARINC 600 Size 1</td>
+                <td style="padding:10px 12px;">Amphenol</td>
+                <td style="padding:10px 12px;">Rectangular</td>
+                <td style="padding:10px 12px;">100</td>
+                <td style="padding:10px 12px;"><span style="background:#eff6ff;color:#1e40af;padding:2px 6px;border-radius:3px;font-size:10px;">ARINC 600</span></td>
+                <td style="padding:10px 12px;">210g</td>
+                <td style="padding:10px 12px;font-weight:500;">$450</td>
+                <td style="padding:10px 12px;"><div style="background:#f1f5f9;color:#475569;padding:4px 8px;border-radius:4px;font-size:10px;text-align:center;">Link</div></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  <style>
+    @keyframes fadeUp{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+    @keyframes typeSearch{to{width:68px;}}
+    @keyframes highlightRow{0%{background:transparent;}30%{background:#dbeafe;}100%{background:#eff6ff;}}
+    @keyframes pulseLink{0%,100%{box-shadow:none;}50%{box-shadow:0 0 0 4px rgba(59,130,246,0.25);}}
+  </style>`
+},
+// ---- SCENE 4: Bus Loading & Sizing Analysis ----
+{
+  title: "Scene 4 of 8 — Bus Loading & Sizing Analysis",
+  duration: 7000,
+  render: () => `
+  <div style="display:flex;width:100%;height:100%;">
+    ${sidebar('Bus Analysis')}
+    <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+      ${topbar()}
+      <div style="flex:1;padding:24px;overflow-y:auto;background:#f8fafc;">
+        <div style="animation:fadeUp 0.3s ease;">
+          <h1 style="font-size:22px;font-weight:600;">Bus Loading & Sizing Analysis</h1>
+          <p style="font-size:13px;color:#64748b;margin-top:4px;">Protocol-specific bandwidth, signal count, and length validation</p>
+        </div>
+        <!-- Bus Cards -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:20px;">
+          <!-- ADC_429_BUS -->
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;animation:fadeUp 0.4s ease 0.3s both;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+              <div style="font-size:14px;font-weight:600;">ADC_429_BUS</div>
+              <span style="background:#dcfce7;color:#166534;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600;">✓ PASS</span>
+            </div>
+            <div style="font-size:12px;color:#64748b;margin-bottom:8px;">ARINC 429 · 187/256 labels</div>
+            <div style="margin-bottom:6px;">
+              <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px;"><span>Bandwidth</span><span style="font-weight:600;">73%</span></div>
+              <div style="height:6px;background:#f1f5f9;border-radius:3px;overflow:hidden;"><div style="height:100%;width:73%;background:#22c55e;border-radius:3px;animation:growBar 1s ease 1s both;transform-origin:left;"></div></div>
+            </div>
+            <div style="font-size:11px;color:#64748b;">Length: 45m / 100m max</div>
+          </div>
+          <!-- NAV_CAN_1 -->
+          <div style="background:#fff;border:2px solid #f59e0b;border-radius:8px;padding:16px;animation:fadeUp 0.4s ease 0.5s both;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+              <div style="font-size:14px;font-weight:600;">NAV_CAN_1</div>
+              <span style="background:#fef3c7;color:#92400e;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600;">⚠ WARNING</span>
+            </div>
+            <div style="font-size:12px;color:#64748b;margin-bottom:8px;">CAN Bus · 42 messages</div>
+            <div style="margin-bottom:6px;">
+              <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px;"><span>Bandwidth</span><span style="font-weight:600;color:#f59e0b;">89%</span></div>
+              <div style="height:6px;background:#f1f5f9;border-radius:3px;overflow:hidden;"><div style="height:100%;width:89%;background:#f59e0b;border-radius:3px;animation:growBar 1s ease 1.2s both;transform-origin:left;"></div></div>
+            </div>
+            <div style="font-size:11px;color:#92400e;">Length: 28m / 40m max · &gt;80% margin</div>
+          </div>
+          <!-- ENG_1553 -->
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;animation:fadeUp 0.4s ease 0.7s both;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+              <div style="font-size:14px;font-weight:600;">ENG_1553</div>
+              <span style="background:#dcfce7;color:#166534;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600;">✓ PASS</span>
+            </div>
+            <div style="font-size:12px;color:#64748b;margin-bottom:8px;">MIL-STD-1553 · 8/31 RTs</div>
+            <div style="margin-bottom:6px;">
+              <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px;"><span>Bandwidth</span><span style="font-weight:600;">45%</span></div>
+              <div style="height:6px;background:#f1f5f9;border-radius:3px;overflow:hidden;"><div style="height:100%;width:45%;background:#22c55e;border-radius:3px;animation:growBar 1s ease 1.4s both;transform-origin:left;"></div></div>
+            </div>
+            <div style="font-size:11px;color:#64748b;">Length: 65ft / 300ft max</div>
+          </div>
+          <!-- AFDX_NET_A -->
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;animation:fadeUp 0.4s ease 0.9s both;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+              <div style="font-size:14px;font-weight:600;">AFDX_NET_A</div>
+              <span style="background:#dcfce7;color:#166534;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600;">✓ PASS</span>
+            </div>
+            <div style="font-size:12px;color:#64748b;margin-bottom:8px;">ARINC 664 · 128 VLs</div>
+            <div style="margin-bottom:6px;">
+              <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px;"><span>Bandwidth</span><span style="font-weight:600;">62%</span></div>
+              <div style="height:6px;background:#f1f5f9;border-radius:3px;overflow:hidden;"><div style="height:100%;width:62%;background:#22c55e;border-radius:3px;animation:growBar 1s ease 1.6s both;transform-origin:left;"></div></div>
+            </div>
+            <div style="font-size:11px;color:#64748b;">Length: 85m / 100m max</div>
+          </div>
+        </div>
+        <!-- Detailed Breakdown for NAV_CAN_1 -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px;">
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;animation:fadeUp 0.4s ease 2s both;">
+            <div style="font-size:14px;font-weight:600;margin-bottom:12px;">NAV_CAN_1 — Per-Signal Breakdown</div>
+            <div style="font-size:11px;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span style="width:100px;color:#475569;">GPS_LAT</span><div style="flex:1;height:5px;background:#f1f5f9;border-radius:3px;overflow:hidden;"><div style="height:100%;width:18%;background:#3b82f6;border-radius:3px;animation:growBar 0.8s ease 2.5s both;transform-origin:left;"></div></div><span style="width:30px;text-align:right;color:#64748b;">18%</span></div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span style="width:100px;color:#475569;">GPS_LON</span><div style="flex:1;height:5px;background:#f1f5f9;border-radius:3px;overflow:hidden;"><div style="height:100%;width:18%;background:#3b82f6;border-radius:3px;animation:growBar 0.8s ease 2.7s both;transform-origin:left;"></div></div><span style="width:30px;text-align:right;color:#64748b;">18%</span></div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span style="width:100px;color:#475569;">GPS_ALT</span><div style="flex:1;height:5px;background:#f1f5f9;border-radius:3px;overflow:hidden;"><div style="height:100%;width:14%;background:#3b82f6;border-radius:3px;animation:growBar 0.8s ease 2.9s both;transform-origin:left;"></div></div><span style="width:30px;text-align:right;color:#64748b;">14%</span></div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span style="width:100px;color:#475569;">NAV_STATUS</span><div style="flex:1;height:5px;background:#f1f5f9;border-radius:3px;overflow:hidden;"><div style="height:100%;width:12%;background:#8b5cf6;border-radius:3px;animation:growBar 0.8s ease 3.1s both;transform-origin:left;"></div></div><span style="width:30px;text-align:right;color:#64748b;">12%</span></div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span style="width:100px;color:#475569;">WAYPOINT_ID</span><div style="flex:1;height:5px;background:#f1f5f9;border-radius:3px;overflow:hidden;"><div style="height:100%;width:10%;background:#8b5cf6;border-radius:3px;animation:growBar 0.8s ease 3.3s both;transform-origin:left;"></div></div><span style="width:30px;text-align:right;color:#64748b;">10%</span></div>
+              <div style="color:#94a3b8;margin-top:4px;">+37 more signals (17% combined)</div>
+            </div>
+          </div>
+          <!-- Recommendation -->
+          <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:16px;animation:fadeUp 0.4s ease 3.5s both;">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
+              <span style="font-size:16px;">💡</span>
+              <div style="font-size:14px;font-weight:600;color:#92400e;">Recommendation</div>
+            </div>
+            <p style="font-size:12px;color:#78350f;line-height:1.6;">Consider splitting <strong>NAV_CAN_1</strong> — move 12 low-priority signals to <strong>NAV_CAN_2</strong> to reduce utilization to <strong>54%</strong>.</p>
+            <div style="margin-top:12px;display:flex;gap:8px;">
+              <div style="background:#f59e0b;color:#fff;padding:5px 12px;border-radius:5px;font-size:11px;font-weight:500;cursor:pointer;">Apply Split</div>
+              <div style="background:#fff;border:1px solid #fde68a;padding:5px 12px;border-radius:5px;font-size:11px;color:#92400e;cursor:pointer;">Dismiss</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <style>
+    @keyframes fadeUp{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+    @keyframes growBar{from{transform:scaleX(0);}to{transform:scaleX(1);}}
+  </style>`
+},
+// ---- SCENE 5: Power Budget & ELA ----
+{
+  title: "Scene 5 of 8 — Power Budget & ELA",
+  duration: 7000,
+  render: () => `
+  <div style="display:flex;width:100%;height:100%;">
+    ${sidebar('Power Budget')}
+    <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+      ${topbar()}
+      <div style="flex:1;padding:24px;overflow-y:auto;background:#f8fafc;">
+        <div style="animation:fadeUp 0.3s ease;">
+          <h1 style="font-size:22px;font-weight:600;">Power Budget & Electrical Load Analysis</h1>
+          <p style="font-size:13px;color:#64748b;margin-top:4px;">Load vs capacity per power bus with margin analysis</p>
+        </div>
+        <!-- Power Bus Summary Cards -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:20px;">
+          <!-- Left Bus -->
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;animation:fadeUp 0.4s ease 0.3s both;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <div><div style="font-size:14px;font-weight:600;">Left Bus</div><div style="font-size:11px;color:#64748b;">115V AC</div></div>
+              <span style="background:#dcfce7;color:#166534;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600;">✓ PASS</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px;"><span>8,420W / 12,000W</span><span style="font-weight:600;">70.2%</span></div>
+            <div style="height:8px;background:#f1f5f9;border-radius:4px;overflow:hidden;"><div style="height:100%;width:70.2%;background:#22c55e;border-radius:4px;animation:growBar 1s ease 1s both;transform-origin:left;"></div></div>
+          </div>
+          <!-- Right Bus -->
+          <div style="background:#fff;border:2px solid #f59e0b;border-radius:8px;padding:16px;animation:fadeUp 0.4s ease 0.5s both;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <div><div style="font-size:14px;font-weight:600;">Right Bus</div><div style="font-size:11px;color:#64748b;">115V AC</div></div>
+              <span style="background:#fef3c7;color:#92400e;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600;">⚠ WARNING</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px;"><span>9,180W / 12,000W</span><span style="font-weight:600;color:#f59e0b;">76.5%</span></div>
+            <div style="height:8px;background:#f1f5f9;border-radius:4px;overflow:hidden;"><div style="height:100%;width:76.5%;background:#f59e0b;border-radius:4px;animation:growBar 1s ease 1.2s both;transform-origin:left;"></div></div>
+          </div>
+          <!-- Essential Bus -->
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;animation:fadeUp 0.4s ease 0.7s both;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <div><div style="font-size:14px;font-weight:600;">Essential Bus</div><div style="font-size:11px;color:#64748b;">28V DC</div></div>
+              <span style="background:#dcfce7;color:#166534;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600;">✓ PASS</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px;"><span>1,240W / 3,000W</span><span style="font-weight:600;">41.3%</span></div>
+            <div style="height:8px;background:#f1f5f9;border-radius:4px;overflow:hidden;"><div style="height:100%;width:41.3%;background:#22c55e;border-radius:4px;animation:growBar 1s ease 1.4s both;transform-origin:left;"></div></div>
+          </div>
+          <!-- Battery Bus -->
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;animation:fadeUp 0.4s ease 0.9s both;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <div><div style="font-size:14px;font-weight:600;">Battery Bus</div><div style="font-size:11px;color:#64748b;">28V DC</div></div>
+              <span style="background:#dcfce7;color:#166534;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600;">✓ PASS</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px;"><span>680W / 1,500W</span><span style="font-weight:600;">45.3%</span></div>
+            <div style="height:8px;background:#f1f5f9;border-radius:4px;overflow:hidden;"><div style="height:100%;width:45.3%;background:#22c55e;border-radius:4px;animation:growBar 1s ease 1.6s both;transform-origin:left;"></div></div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px;">
+          <!-- Equipment Power Table -->
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;animation:fadeUp 0.4s ease 2s both;">
+            <div style="font-size:14px;font-weight:600;margin-bottom:12px;">Equipment Power Consumption</div>
+            <table style="width:100%;border-collapse:collapse;font-size:12px;">
+              <thead><tr style="border-bottom:1px solid #e2e8f0;">
+                <th style="text-align:left;padding:6px 8px;font-weight:500;color:#64748b;">Equipment</th>
+                <th style="text-align:right;padding:6px 8px;font-weight:500;color:#64748b;">Power</th>
+                <th style="text-align:left;padding:6px 8px;font-weight:500;color:#64748b;">Duty</th>
+              </tr></thead>
+              <tbody>
+                <tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:6px 8px;">AHRS</td><td style="padding:6px 8px;text-align:right;font-weight:500;">45W</td><td style="padding:6px 8px;color:#64748b;">Continuous</td></tr>
+                <tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:6px 8px;">IRS</td><td style="padding:6px 8px;text-align:right;font-weight:500;">120W</td><td style="padding:6px 8px;color:#64748b;">Continuous</td></tr>
+                <tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:6px 8px;">ADC</td><td style="padding:6px 8px;text-align:right;font-weight:500;">35W</td><td style="padding:6px 8px;color:#64748b;">Continuous</td></tr>
+                <tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:6px 8px;">FMC</td><td style="padding:6px 8px;text-align:right;font-weight:500;">85W</td><td style="padding:6px 8px;color:#64748b;">Continuous</td></tr>
+                <tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:6px 8px;">PFD</td><td style="padding:6px 8px;text-align:right;font-weight:500;">65W</td><td style="padding:6px 8px;color:#64748b;">Continuous</td></tr>
+                <tr><td style="padding:6px 8px;">MFD</td><td style="padding:6px 8px;text-align:right;font-weight:500;">75W</td><td style="padding:6px 8px;color:#64748b;">Continuous</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <!-- Bar Chart Visualization -->
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;animation:fadeUp 0.4s ease 2.5s both;">
+            <div style="font-size:14px;font-weight:600;margin-bottom:16px;">Load vs Capacity</div>
+            <div style="display:flex;align-items:flex-end;gap:16px;height:160px;padding-bottom:24px;border-bottom:1px solid #e2e8f0;">
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">
+                <div style="width:100%;display:flex;gap:3px;align-items:flex-end;justify-content:center;height:140px;">
+                  <div style="width:20px;background:#3b82f6;border-radius:3px 3px 0 0;animation:growUp 0.8s ease 3s both;height:98px;" title="Load: 8,420W"></div>
+                  <div style="width:20px;background:#e2e8f0;border-radius:3px 3px 0 0;height:140px;" title="Capacity: 12,000W"></div>
+                </div>
+                <div style="font-size:10px;color:#64748b;margin-top:4px;">Left</div>
+              </div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">
+                <div style="width:100%;display:flex;gap:3px;align-items:flex-end;justify-content:center;height:140px;">
+                  <div style="width:20px;background:#f59e0b;border-radius:3px 3px 0 0;animation:growUp 0.8s ease 3.2s both;height:107px;" title="Load: 9,180W"></div>
+                  <div style="width:20px;background:#e2e8f0;border-radius:3px 3px 0 0;height:140px;" title="Capacity: 12,000W"></div>
+                </div>
+                <div style="font-size:10px;color:#64748b;margin-top:4px;">Right</div>
+              </div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">
+                <div style="width:100%;display:flex;gap:3px;align-items:flex-end;justify-content:center;height:140px;">
+                  <div style="width:20px;background:#22c55e;border-radius:3px 3px 0 0;animation:growUp 0.8s ease 3.4s both;height:58px;" title="Load: 1,240W"></div>
+                  <div style="width:20px;background:#e2e8f0;border-radius:3px 3px 0 0;height:140px;" title="Capacity: 3,000W"></div>
+                </div>
+                <div style="font-size:10px;color:#64748b;margin-top:4px;">Essential</div>
+              </div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">
+                <div style="width:100%;display:flex;gap:3px;align-items:flex-end;justify-content:center;height:140px;">
+                  <div style="width:20px;background:#22c55e;border-radius:3px 3px 0 0;animation:growUp 0.8s ease 3.6s both;height:63px;" title="Load: 680W"></div>
+                  <div style="width:20px;background:#e2e8f0;border-radius:3px 3px 0 0;height:140px;" title="Capacity: 1,500W"></div>
+                </div>
+                <div style="font-size:10px;color:#64748b;margin-top:4px;">Battery</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:16px;margin-top:8px;font-size:10px;color:#64748b;justify-content:center;">
+              <div style="display:flex;align-items:center;gap:4px;"><div style="width:10px;height:10px;border-radius:2px;background:#3b82f6;"></div>Load</div>
+              <div style="display:flex;align-items:center;gap:4px;"><div style="width:10px;height:10px;border-radius:2px;background:#e2e8f0;"></div>Capacity</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <style>
+    @keyframes fadeUp{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+    @keyframes growBar{from{transform:scaleX(0);}to{transform:scaleX(1);}}
+    @keyframes growUp{from{height:0;}to{height:var(--h,100%);}}
+  </style>`
+},
+// ---- SCENE 6: Mass Properties & Cost Estimation ----
+{
+  title: "Scene 6 of 8 — Mass Properties & Cost Estimation",
+  duration: 7000,
+  render: () => `
+  <div style="display:flex;width:100%;height:100%;">
+    ${sidebar('Mass & Cost')}
+    <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+      ${topbar()}
+      <div style="flex:1;padding:24px;overflow-y:auto;background:#f8fafc;">
+        <div style="animation:fadeUp 0.3s ease;">
+          <h1 style="font-size:22px;font-weight:600;">Mass Properties & Cost Estimation</h1>
+          <p style="font-size:13px;color:#64748b;margin-top:4px;">Weight and cost roll-ups for WD-001</p>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px;">
+          <!-- Mass Properties Card -->
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:20px;animation:fadeUp 0.4s ease 0.3s both;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+              <span style="font-size:18px;">⚖</span>
+              <div style="font-size:15px;font-weight:600;">Mass Properties</div>
+            </div>
+            <div style="font-size:13px;">
+              <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9;">
+                <span style="color:#475569;">Equipment</span><span style="font-weight:600;">142.8 kg</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9;">
+                <span style="color:#475569;">Connectors <span style="font-size:11px;color:#94a3b8;">(186 parts)</span></span><span style="font-weight:600;">8.4 kg</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9;">
+                <span style="color:#475569;">Cable Bundles <span style="font-size:11px;color:#94a3b8;">(1,240m total)</span></span><span style="font-weight:600;">34.2 kg</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e2e8f0;">
+                <span style="color:#475569;">Harness Hardware</span><span style="font-weight:600;">5.6 kg</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:10px 0;font-size:15px;">
+                <span style="font-weight:700;">TOTAL</span><span style="font-weight:700;color:#3b82f6;">191.0 kg</span>
+              </div>
+            </div>
+          </div>
+          <!-- Cost Estimation Card -->
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:20px;animation:fadeUp 0.4s ease 0.5s both;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+              <span style="font-size:18px;">💰</span>
+              <div style="font-size:15px;font-weight:600;">Cost Estimation</div>
+            </div>
+            <div style="font-size:13px;">
+              <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9;">
+                <span style="color:#475569;">Equipment</span><span style="font-weight:600;">$1,245,000</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9;">
+                <span style="color:#475569;">Connectors</span><span style="font-weight:600;">$48,200</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9;">
+                <span style="color:#475569;">Cables & Wire</span><span style="font-weight:600;">$22,800</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e2e8f0;">
+                <span style="color:#475569;">Labor (est.)</span><span style="font-weight:600;">$185,000</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:10px 0;font-size:15px;">
+                <span style="font-weight:700;">TOTAL</span><span style="font-weight:700;color:#22c55e;">$1,501,000</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Weight Growth Chart -->
+        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:20px;margin-top:16px;animation:fadeUp 0.4s ease 1s both;">
+          <div style="font-size:14px;font-weight:600;margin-bottom:16px;">Weight Growth Across Baselines</div>
+          <div style="position:relative;height:140px;display:flex;align-items:flex-end;gap:0;padding:0 20px;">
+            <!-- Y-axis labels -->
+            <div style="position:absolute;left:0;top:0;font-size:10px;color:#94a3b8;">200 kg</div>
+            <div style="position:absolute;left:0;top:50%;font-size:10px;color:#94a3b8;">175 kg</div>
+            <div style="position:absolute;left:0;bottom:0;font-size:10px;color:#94a3b8;">150 kg</div>
+            <!-- Grid lines -->
+            <div style="position:absolute;left:40px;right:0;top:0;border-bottom:1px dashed #e2e8f0;"></div>
+            <div style="position:absolute;left:40px;right:0;top:50%;border-bottom:1px dashed #e2e8f0;"></div>
+            <div style="position:absolute;left:40px;right:0;bottom:0;border-bottom:1px solid #e2e8f0;"></div>
+            <!-- Data points connected by line -->
+            <svg style="position:absolute;left:40px;right:0;top:0;bottom:0;width:calc(100% - 60px);height:100%;" viewBox="0 0 400 140" preserveAspectRatio="none">
+              <polyline points="50,98 150,72 250,58 350,28" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation:drawLine 2s ease 2s both;stroke-dasharray:500;stroke-dashoffset:500;"/>
+              <circle cx="50" cy="98" r="5" fill="#3b82f6" style="animation:fadeIn 0.3s ease 2.5s both;opacity:0;"/>
+              <circle cx="150" cy="72" r="5" fill="#3b82f6" style="animation:fadeIn 0.3s ease 3s both;opacity:0;"/>
+              <circle cx="250" cy="58" r="5" fill="#3b82f6" style="animation:fadeIn 0.3s ease 3.5s both;opacity:0;"/>
+              <circle cx="350" cy="28" r="5" fill="#3b82f6" style="animation:fadeIn 0.3s ease 4s both;opacity:0;"/>
+              <!-- Labels -->
+              <text x="50" y="120" text-anchor="middle" font-size="10" fill="#64748b">v0.1</text>
+              <text x="150" y="120" text-anchor="middle" font-size="10" fill="#64748b">v0.5</text>
+              <text x="250" y="120" text-anchor="middle" font-size="10" fill="#64748b">v1.0</text>
+              <text x="350" y="120" text-anchor="middle" font-size="10" fill="#64748b">v1.1</text>
+              <text x="50" y="92" text-anchor="middle" font-size="9" fill="#3b82f6" font-weight="600" style="animation:fadeIn 0.3s ease 2.5s both;opacity:0;">165kg</text>
+              <text x="150" y="66" text-anchor="middle" font-size="9" fill="#3b82f6" font-weight="600" style="animation:fadeIn 0.3s ease 3s both;opacity:0;">178kg</text>
+              <text x="250" y="52" text-anchor="middle" font-size="9" fill="#3b82f6" font-weight="600" style="animation:fadeIn 0.3s ease 3.5s both;opacity:0;">185kg</text>
+              <text x="350" y="22" text-anchor="middle" font-size="9" fill="#3b82f6" font-weight="600" style="animation:fadeIn 0.3s ease 4s both;opacity:0;">191kg</text>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <style>
+    @keyframes fadeUp{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+    @keyframes drawLine{to{stroke-dashoffset:0;}}
+    @keyframes fadeIn{to{opacity:1;}}
+  </style>`
+},
+// ---- SCENE 7: Architecture Comparison & AI Trade Study ----
+{
+  title: "Scene 7 of 8 — Architecture Comparison & AI Trade Study",
+  duration: 7000,
+  render: () => `
+  <div style="display:flex;width:100%;height:100%;">
+    ${sidebar('Trade Studies')}
+    <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+      ${topbar()}
+      <div style="flex:1;padding:24px;overflow-y:auto;background:#f8fafc;">
+        <div style="animation:fadeUp 0.3s ease;">
+          <h1 style="font-size:22px;font-weight:600;">Architecture Comparison</h1>
+          <p style="font-size:13px;color:#64748b;margin-top:4px;">WD-001 vs WD-002 — Side-by-side trade study</p>
+        </div>
+        <!-- Comparison Table -->
+        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;margin-top:20px;animation:fadeUp 0.4s ease 0.3s both;">
+          <table style="width:100%;border-collapse:collapse;font-size:13px;">
+            <thead><tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0;">
+              <th style="text-align:left;padding:12px 16px;font-weight:600;color:#475569;">Metric</th>
+              <th style="text-align:center;padding:12px 16px;font-weight:600;color:#1e40af;background:#eff6ff;">WD-001</th>
+              <th style="text-align:center;padding:12px 16px;font-weight:600;color:#6d28d9;background:#f5f3ff;">WD-002</th>
+              <th style="text-align:center;padding:12px 16px;font-weight:600;color:#475569;">Delta</th>
+            </tr></thead>
+            <tbody>
+              <tr style="border-bottom:1px solid #f1f5f9;">
+                <td style="padding:10px 16px;font-weight:500;">Equipment</td>
+                <td style="padding:10px 16px;text-align:center;">28</td>
+                <td style="padding:10px 16px;text-align:center;">29</td>
+                <td style="padding:10px 16px;text-align:center;color:#64748b;">+1</td>
+              </tr>
+              <tr style="border-bottom:1px solid #f1f5f9;">
+                <td style="padding:10px 16px;font-weight:500;">Signals</td>
+                <td style="padding:10px 16px;text-align:center;">247</td>
+                <td style="padding:10px 16px;text-align:center;">263</td>
+                <td style="padding:10px 16px;text-align:center;color:#64748b;">+16</td>
+              </tr>
+              <tr style="border-bottom:1px solid #f1f5f9;animation:highlightGood 2s ease 2s both;">
+                <td style="padding:10px 16px;font-weight:500;">Max Bus Loading</td>
+                <td style="padding:10px 16px;text-align:center;">89%</td>
+                <td style="padding:10px 16px;text-align:center;">76%</td>
+                <td style="padding:10px 16px;text-align:center;color:#166534;font-weight:600;">-13% ✓</td>
+              </tr>
+              <tr style="border-bottom:1px solid #f1f5f9;">
+                <td style="padding:10px 16px;font-weight:500;">Power Margin</td>
+                <td style="padding:10px 16px;text-align:center;">23.5%</td>
+                <td style="padding:10px 16px;text-align:center;">18.2%</td>
+                <td style="padding:10px 16px;text-align:center;color:#dc2626;">-5.3%</td>
+              </tr>
+              <tr style="border-bottom:1px solid #f1f5f9;">
+                <td style="padding:10px 16px;font-weight:500;">Total Weight</td>
+                <td style="padding:10px 16px;text-align:center;">191.0 kg</td>
+                <td style="padding:10px 16px;text-align:center;">198.4 kg</td>
+                <td style="padding:10px 16px;text-align:center;color:#dc2626;">+7.4 kg</td>
+              </tr>
+              <tr>
+                <td style="padding:10px 16px;font-weight:500;">Total Cost</td>
+                <td style="padding:10px 16px;text-align:center;">$1.50M</td>
+                <td style="padding:10px 16px;text-align:center;">$1.62M</td>
+                <td style="padding:10px 16px;text-align:center;color:#dc2626;">+$120K</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <!-- AI Analysis Panel -->
+        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:20px;margin-top:16px;animation:fadeUp 0.4s ease 1.5s both;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+            <span style="font-size:18px;">🤖</span>
+            <div style="font-size:15px;font-weight:600;">AI Trade Study Analysis</div>
+            <div style="margin-left:auto;display:flex;gap:6px;">
+              <span style="background:#dbeafe;color:#1e40af;padding:3px 8px;border-radius:4px;font-size:10px;font-weight:600;">Data-driven</span>
+              <span style="background:#fef3c7;color:#92400e;padding:3px 8px;border-radius:4px;font-size:10px;font-weight:600;">Heuristic</span>
+            </div>
+          </div>
+          <div class="ai-text" style="font-size:13px;color:#334155;line-height:1.7;position:relative;">
+            <p style="margin-bottom:10px;animation:fadeUp 0.4s ease 2.5s both;"><span style="background:#dbeafe;color:#1e40af;padding:1px 5px;border-radius:3px;font-size:10px;font-weight:600;margin-right:4px;">Data-driven</span> <strong>WD-002</strong> provides better bus loading margins (<strong>-13%</strong>) due to the additional AHRS distributing navigation signals across two units. However, it increases weight by <strong>3.9%</strong> and cost by <strong>8%</strong>.</p>
+            <p style="margin-bottom:10px;animation:fadeUp 0.4s ease 3s both;"><span style="background:#fef3c7;color:#92400e;padding:1px 5px;border-radius:3px;font-size:10px;font-weight:600;margin-right:4px;">Heuristic</span> For <strong>FAR 25</strong> certification, the improved redundancy of 2× AHRS may simplify the safety analysis (DAL A compliance).</p>
+            <p style="animation:fadeUp 0.4s ease 3.5s both;"><strong style="color:#3b82f6;">Recommendation:</strong> WD-002 is preferred for programs prioritizing certification timeline over cost.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <style>
+    @keyframes fadeUp{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+    @keyframes highlightGood{0%{background:transparent;}30%{background:#dcfce7;}100%{background:#f0fdf4;}}
+  </style>`
+},
+// ---- SCENE 8: Aerospace-Grade Wiring Diagram ----
+{
+  title: "Scene 8 of 8 — Aerospace-Grade Wiring Diagram",
+  duration: 7000,
+  render: () => `
+  <div style="display:flex;width:100%;height:100%;">
+    ${sidebar('Wiring')}
+    <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+      ${topbar()}
+      <div style="flex:1;position:relative;background:#fafbfc;">
+        <!-- Toolbar -->
+        <div style="position:absolute;top:12px;left:12px;z-index:10;display:flex;gap:8px;">
+          <div style="background:#3b82f6;color:#fff;border:1px solid #2563eb;border-radius:6px;padding:6px 12px;font-size:12px;box-shadow:0 1px 3px rgba(0,0,0,0.1);font-weight:500;">⬇ Export PDF (D-Size)</div>
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:6px;padding:6px 12px;font-size:12px;box-shadow:0 1px 3px rgba(0,0,0,0.1);">⬇ Export DXF</div>
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:6px;padding:6px 12px;font-size:12px;box-shadow:0 1px 3px rgba(0,0,0,0.1);">⛶ Fit View</div>
+        </div>
+        <svg width="100%" height="100%" viewBox="0 0 960 540" style="animation:fadeUp 0.5s ease;">
+          <defs>
+            <marker id="arrowhead2" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#334155"/></marker>
+          </defs>
+          <!-- Drawing Border -->
+          <rect x="10" y="10" width="940" height="520" fill="#fff" stroke="#334155" stroke-width="2" rx="0"/>
+          <rect x="14" y="14" width="932" height="512" fill="none" stroke="#334155" stroke-width="0.5"/>
+          <!-- Zone Markers - Horizontal (1-8) -->
+          <text x="72" y="8" font-size="9" fill="#94a3b8" text-anchor="middle">1</text>
+          <text x="189" y="8" font-size="9" fill="#94a3b8" text-anchor="middle">2</text>
+          <text x="306" y="8" font-size="9" fill="#94a3b8" text-anchor="middle">3</text>
+          <text x="423" y="8" font-size="9" fill="#94a3b8" text-anchor="middle">4</text>
+          <text x="540" y="8" font-size="9" fill="#94a3b8" text-anchor="middle">5</text>
+          <text x="657" y="8" font-size="9" fill="#94a3b8" text-anchor="middle">6</text>
+          <text x="774" y="8" font-size="9" fill="#94a3b8" text-anchor="middle">7</text>
+          <text x="891" y="8" font-size="9" fill="#94a3b8" text-anchor="middle">8</text>
+          <!-- Zone Markers - Vertical (A-F) -->
+          <text x="6" y="100" font-size="9" fill="#94a3b8" text-anchor="middle">A</text>
+          <text x="6" y="186" font-size="9" fill="#94a3b8" text-anchor="middle">B</text>
+          <text x="6" y="272" font-size="9" fill="#94a3b8" text-anchor="middle">C</text>
+          <text x="6" y="358" font-size="9" fill="#94a3b8" text-anchor="middle">D</text>
+          <text x="6" y="444" font-size="9" fill="#94a3b8" text-anchor="middle">E</text>
+          <text x="6" y="500" font-size="9" fill="#94a3b8" text-anchor="middle">F</text>
+
+          <!-- ===== ADC-1 Equipment Block ===== -->
+          <g style="animation:fadeUp 0.4s ease 0.3s both;">
+            <rect x="40" y="40" width="220" height="220" fill="#fff" stroke="#334155" stroke-width="1.5"/>
+            <!-- Header -->
+            <rect x="40" y="40" width="220" height="24" fill="#eff6ff" stroke="#334155" stroke-width="1.5"/>
+            <text x="50" y="56" font-size="10" font-weight="700" fill="#1e40af">ADC-1</text>
+            <text x="220" y="56" font-size="8" fill="#64748b" text-anchor="end">P/N: ADC-4200A</text>
+            <text x="50" y="76" font-size="9" fill="#475569" font-weight="600">Air Data Computer</text>
+            <!-- Pin Table -->
+            <line x1="40" y1="82" x2="260" y2="82" stroke="#e2e8f0" stroke-width="0.5"/>
+            <text x="50" y="93" font-size="8" fill="#94a3b8" font-weight="600">PIN</text>
+            <text x="90" y="93" font-size="8" fill="#94a3b8" font-weight="600">SIGNAL</text>
+            <text x="200" y="93" font-size="8" fill="#94a3b8" font-weight="600">TYPE</text>
+            <line x1="40" y1="97" x2="260" y2="97" stroke="#e2e8f0" stroke-width="0.5"/>
+            <text x="50" y="110" font-size="9" fill="#475569">A1</text><text x="90" y="110" font-size="9" fill="#0f172a" font-weight="500">AIRSPEED_IAS</text><text x="200" y="110" font-size="8" fill="#64748b">429 OUT</text>
+            <text x="50" y="125" font-size="9" fill="#475569">A2</text><text x="90" y="125" font-size="9" fill="#0f172a" font-weight="500">ALTITUDE_BARO</text><text x="200" y="125" font-size="8" fill="#64748b">429 OUT</text>
+            <text x="50" y="140" font-size="9" fill="#475569">A3</text><text x="90" y="140" font-size="9" fill="#0f172a" font-weight="500">MACH_NUM</text><text x="200" y="140" font-size="8" fill="#64748b">429 OUT</text>
+            <text x="50" y="155" font-size="9" fill="#475569">B1</text><text x="90" y="155" font-size="9" fill="#0f172a" font-weight="500">STATIC_PRESS</text><text x="200" y="155" font-size="8" fill="#64748b">429 OUT</text>
+            <text x="50" y="170" font-size="9" fill="#475569">B2</text><text x="90" y="170" font-size="9" fill="#0f172a" font-weight="500">TOTAL_PRESS</text><text x="200" y="170" font-size="8" fill="#64748b">429 OUT</text>
+            <text x="50" y="185" font-size="9" fill="#475569">C1</text><text x="90" y="185" font-size="9" fill="#0f172a" font-weight="500">TAT</text><text x="200" y="185" font-size="8" fill="#64748b">429 OUT</text>
+            <text x="50" y="200" font-size="9" fill="#475569">D1</text><text x="90" y="200" font-size="9" fill="#0f172a" font-weight="500">PWR_28V</text><text x="200" y="200" font-size="8" fill="#64748b">POWER</text>
+            <text x="50" y="215" font-size="9" fill="#475569">D2</text><text x="90" y="215" font-size="9" fill="#0f172a" font-weight="500">GND</text><text x="200" y="215" font-size="8" fill="#64748b">GROUND</text>
+            <!-- Connector symbol on right side -->
+            <circle cx="260" cy="110" r="4" fill="#3b82f6" stroke="#1e40af" stroke-width="1"/>
+            <circle cx="260" cy="125" r="4" fill="#3b82f6" stroke="#1e40af" stroke-width="1"/>
+            <circle cx="260" cy="140" r="4" fill="#3b82f6" stroke="#1e40af" stroke-width="1"/>
+          </g>
+
+          <!-- ===== PFD-1 Equipment Block ===== -->
+          <g style="animation:fadeUp 0.4s ease 0.6s both;">
+            <rect x="560" y="40" width="200" height="180" fill="#fff" stroke="#334155" stroke-width="1.5"/>
+            <rect x="560" y="40" width="200" height="24" fill="#f0fdf4" stroke="#334155" stroke-width="1.5"/>
+            <text x="570" y="56" font-size="10" font-weight="700" fill="#166534">PFD-1</text>
+            <text x="720" y="56" font-size="8" fill="#64748b" text-anchor="end">P/N: PFD-6100</text>
+            <text x="570" y="76" font-size="9" fill="#475569" font-weight="600">Primary Flight Display</text>
+            <line x1="560" y1="82" x2="760" y2="82" stroke="#e2e8f0" stroke-width="0.5"/>
+            <text x="570" y="93" font-size="8" fill="#94a3b8" font-weight="600">PIN</text>
+            <text x="610" y="93" font-size="8" fill="#94a3b8" font-weight="600">SIGNAL</text>
+            <text x="720" y="93" font-size="8" fill="#94a3b8" font-weight="600">TYPE</text>
+            <line x1="560" y1="97" x2="760" y2="97" stroke="#e2e8f0" stroke-width="0.5"/>
+            <text x="570" y="110" font-size="9" fill="#475569">1</text><text x="610" y="110" font-size="9" fill="#0f172a" font-weight="500">AIRSPEED_IAS</text><text x="720" y="110" font-size="8" fill="#64748b">429 IN</text>
+            <text x="570" y="125" font-size="9" fill="#475569">2</text><text x="610" y="125" font-size="9" fill="#0f172a" font-weight="500">ALTITUDE_BARO</text><text x="720" y="125" font-size="8" fill="#64748b">429 IN</text>
+            <text x="570" y="140" font-size="9" fill="#475569">3</text><text x="610" y="140" font-size="9" fill="#0f172a" font-weight="500">HEADING_MAG</text><text x="720" y="140" font-size="8" fill="#64748b">429 IN</text>
+            <text x="570" y="155" font-size="9" fill="#475569">4</text><text x="610" y="155" font-size="9" fill="#0f172a" font-weight="500">ATT_PITCH</text><text x="720" y="155" font-size="8" fill="#64748b">429 IN</text>
+            <text x="570" y="170" font-size="9" fill="#475569">5</text><text x="610" y="170" font-size="9" fill="#0f172a" font-weight="500">ATT_ROLL</text><text x="720" y="170" font-size="8" fill="#64748b">429 IN</text>
+            <text x="570" y="185" font-size="9" fill="#475569">6</text><text x="610" y="185" font-size="9" fill="#0f172a" font-weight="500">PWR_28V</text><text x="720" y="185" font-size="8" fill="#64748b">POWER</text>
+            <!-- Connector symbol on left side -->
+            <circle cx="560" cy="110" r="4" fill="#22c55e" stroke="#166534" stroke-width="1"/>
+            <circle cx="560" cy="125" r="4" fill="#22c55e" stroke="#166534" stroke-width="1"/>
+            <circle cx="560" cy="140" r="4" fill="#22c55e" stroke="#166534" stroke-width="1"/>
+          </g>
+
+          <!-- ===== AHRS-1 Equipment Block ===== -->
+          <g style="animation:fadeUp 0.4s ease 0.9s both;">
+            <rect x="560" y="250" width="200" height="200" fill="#fff" stroke="#334155" stroke-width="1.5"/>
+            <rect x="560" y="250" width="200" height="24" fill="#fef3c7" stroke="#334155" stroke-width="1.5"/>
+            <text x="570" y="266" font-size="10" font-weight="700" fill="#92400e">AHRS-1</text>
+            <text x="720" y="266" font-size="8" fill="#64748b" text-anchor="end">P/N: AHRS-800</text>
+            <text x="570" y="286" font-size="9" fill="#475569" font-weight="600">Attitude Heading Ref System</text>
+            <line x1="560" y1="292" x2="760" y2="292" stroke="#e2e8f0" stroke-width="0.5"/>
+            <text x="570" y="303" font-size="8" fill="#94a3b8" font-weight="600">PIN</text>
+            <text x="610" y="303" font-size="8" fill="#94a3b8" font-weight="600">SIGNAL</text>
+            <text x="720" y="303" font-size="8" fill="#94a3b8" font-weight="600">TYPE</text>
+            <line x1="560" y1="307" x2="760" y2="307" stroke="#e2e8f0" stroke-width="0.5"/>
+            <text x="570" y="320" font-size="9" fill="#475569">1</text><text x="610" y="320" font-size="9" fill="#0f172a" font-weight="500">HEADING_MAG</text><text x="720" y="320" font-size="8" fill="#64748b">429 OUT</text>
+            <text x="570" y="335" font-size="9" fill="#475569">2</text><text x="610" y="335" font-size="9" fill="#0f172a" font-weight="500">ATT_PITCH</text><text x="720" y="335" font-size="8" fill="#64748b">429 OUT</text>
+            <text x="570" y="350" font-size="9" fill="#475569">3</text><text x="610" y="350" font-size="9" fill="#0f172a" font-weight="500">ATT_ROLL</text><text x="720" y="350" font-size="8" fill="#64748b">429 OUT</text>
+            <text x="570" y="365" font-size="9" fill="#475569">4</text><text x="610" y="365" font-size="9" fill="#0f172a" font-weight="500">HEADING_TRUE</text><text x="720" y="365" font-size="8" fill="#64748b">429 OUT</text>
+            <text x="570" y="380" font-size="9" fill="#475569">5</text><text x="610" y="380" font-size="9" fill="#0f172a" font-weight="500">TURN_RATE</text><text x="720" y="380" font-size="8" fill="#64748b">429 OUT</text>
+            <text x="570" y="395" font-size="9" fill="#475569">6</text><text x="610" y="395" font-size="9" fill="#0f172a" font-weight="500">SLIP_SKID</text><text x="720" y="395" font-size="8" fill="#64748b">429 OUT</text>
+            <text x="570" y="410" font-size="9" fill="#475569">7</text><text x="610" y="410" font-size="9" fill="#0f172a" font-weight="500">MAG_VAR</text><text x="720" y="410" font-size="8" fill="#64748b">429 OUT</text>
+            <text x="570" y="425" font-size="9" fill="#475569">8</text><text x="610" y="425" font-size="9" fill="#0f172a" font-weight="500">PWR_28V</text><text x="720" y="425" font-size="8" fill="#64748b">POWER</text>
+            <text x="570" y="440" font-size="9" fill="#475569">9</text><text x="610" y="440" font-size="9" fill="#0f172a" font-weight="500">GND</text><text x="720" y="440" font-size="8" fill="#64748b">GROUND</text>
+            <text x="570" y="455" font-size="9" fill="#94a3b8">10</text><text x="610" y="455" font-size="9" fill="#94a3b8">SPARE</text>
+            <!-- Connector symbol on left side -->
+            <circle cx="560" cy="320" r="4" fill="#f59e0b" stroke="#92400e" stroke-width="1"/>
+            <circle cx="560" cy="335" r="4" fill="#f59e0b" stroke="#92400e" stroke-width="1"/>
+            <circle cx="560" cy="350" r="4" fill="#f59e0b" stroke="#92400e" stroke-width="1"/>
+          </g>
+
+          <!-- ===== Wire Runs ===== -->
+          <g style="animation:drawWires 1s ease 1.5s both;opacity:0;">
+            <!-- ADC-1 A1 → PFD-1 Pin 1 (AIRSPEED_IAS) -->
+            <path d="M 264 110 L 380 110 L 380 110 L 556 110" stroke="#334155" stroke-width="1.5" fill="none" marker-end="url(#arrowhead2)"/>
+            <rect x="330" y="100" width="160" height="14" rx="2" fill="#eff6ff" stroke="#bfdbfe" stroke-width="0.5"/>
+            <text x="335" y="110" font-size="8" fill="#1e40af" font-weight="500">W101  22AWG  WHT  WB-101</text>
+
+            <!-- ADC-1 A2 → PFD-1 Pin 2 (ALTITUDE_BARO) -->
+            <path d="M 264 125 L 400 125 L 400 125 L 556 125" stroke="#334155" stroke-width="1.5" fill="none" marker-end="url(#arrowhead2)"/>
+            <rect x="330" y="117" width="160" height="14" rx="2" fill="#eff6ff" stroke="#bfdbfe" stroke-width="0.5"/>
+            <text x="335" y="127" font-size="8" fill="#1e40af" font-weight="500">W102  22AWG  BLU  WB-101</text>
+
+            <!-- ADC-1 A3 → PFD-1 Pin 3 via AHRS (HEADING_MAG path) -->
+            <path d="M 264 140 L 420 140 L 420 320 L 556 320" stroke="#334155" stroke-width="1.5" fill="none" stroke-dasharray="4,2" marker-end="url(#arrowhead2)"/>
+            <rect x="425" y="220" width="120" height="14" rx="2" fill="#fef3c7" stroke="#fde68a" stroke-width="0.5"/>
+            <text x="430" y="230" font-size="8" fill="#92400e" font-weight="500">W103  20AWG  YEL  WB-102</text>
+
+            <!-- AHRS-1 → PFD-1 (ATT_PITCH) -->
+            <path d="M 556 335 L 480 335 L 480 155 L 556 155" stroke="#334155" stroke-width="1.5" fill="none" marker-end="url(#arrowhead2)" style="animation:drawWires 0.8s ease 2.5s both;opacity:0;"/>
+
+            <!-- AHRS-1 → PFD-1 (ATT_ROLL) -->
+            <path d="M 556 350 L 460 350 L 460 170 L 500 170" stroke="#334155" stroke-width="1.5" fill="none" style="animation:drawWires 0.8s ease 2.8s both;opacity:0;"/>
+
+            <!-- Wire callout for AHRS→PFD bundle -->
+            <rect x="462" y="248" width="80" height="14" rx="2" fill="#f0fdf4" stroke="#bbf7d0" stroke-width="0.5"/>
+            <text x="467" y="258" font-size="8" fill="#166534" font-weight="500">WB-102 (4 wires)</text>
+          </g>
+
+          <!-- ===== Title Block ===== -->
+          <g style="animation:fadeUp 0.4s ease 2s both;">
+            <rect x="480" y="470" width="468" height="56" fill="#f8fafc" stroke="#334155" stroke-width="1.5"/>
+            <!-- Dividers -->
+            <line x1="480" y1="486" x2="948" y2="486" stroke="#334155" stroke-width="0.5"/>
+            <line x1="680" y1="470" x2="680" y2="526" stroke="#334155" stroke-width="0.5"/>
+            <line x1="780" y1="486" x2="780" y2="526" stroke="#334155" stroke-width="0.5"/>
+            <line x1="870" y1="486" x2="870" y2="526" stroke="#334155" stroke-width="0.5"/>
+            <!-- Title row -->
+            <text x="490" y="482" font-size="8" fill="#94a3b8">PROJECT</text>
+            <text x="690" y="482" font-size="8" fill="#94a3b8">DWG NO.</text>
+            <text x="860" y="482" font-size="8" fill="#94a3b8" text-anchor="end">REV</text>
+            <text x="880" y="482" font-size="8" fill="#94a3b8">SHEET</text>
+            <!-- Values -->
+            <text x="490" y="500" font-size="10" fill="#0f172a" font-weight="600">AeroX eVTOL</text>
+            <text x="690" y="500" font-size="10" fill="#0f172a" font-weight="600">WD-001-ADC</text>
+            <text x="855" y="500" font-size="10" fill="#0f172a" font-weight="600" text-anchor="end">A</text>
+            <text x="880" y="500" font-size="10" fill="#0f172a" font-weight="600">1 of 3</text>
+            <!-- Approval row -->
+            <text x="490" y="516" font-size="8" fill="#94a3b8">Drawn: <tspan fill="#475569" font-weight="500">J.Smith</tspan></text>
+            <text x="690" y="516" font-size="8" fill="#94a3b8">Checked: <tspan fill="#475569" font-weight="500">M.Jones</tspan></text>
+            <text x="790" y="516" font-size="8" fill="#94a3b8">Approved: <tspan fill="#475569" font-weight="500">___</tspan></text>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </div>
+  <style>
+    @keyframes fadeUp{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+    @keyframes drawWires{to{opacity:1;}}
+  </style>`
+}
+];
+
+// =========================================================================
+// Navigation & auto-play logic
+// =========================================================================
+
+let currentScene = 0;
+let autoPlayTimer = null;
+let isAutoPlaying = false;
+
+function renderScene(idx) {
+  currentScene = idx;
+  const scene = scenes[idx];
+  document.getElementById('appFrame').innerHTML = scene.render();
+  document.getElementById('scene-label').textContent = scene.title;
+  document.getElementById('progress').style.width = `${((idx+1)/scenes.length)*100}%`;
+  // Reset auto-play timer with scene-specific duration
+  if (isAutoPlaying) {
+    clearTimeout(autoPlayTimer);
+    autoPlayTimer = setTimeout(() => { nextScene(); }, scene.duration);
+  }
+}
+
+function nextScene() {
+  if (currentScene < scenes.length - 1) renderScene(currentScene + 1);
+  else renderScene(0);
+}
+
+function prevScene() {
+  if (currentScene > 0) renderScene(currentScene - 1);
+  else renderScene(scenes.length - 1);
+}
+
+function toggleAutoPlay() {
+  if (isAutoPlaying) {
+    clearTimeout(autoPlayTimer);
+    autoPlayTimer = null;
+    isAutoPlaying = false;
+    document.getElementById('autoBtn').textContent = '▶ Auto Play';
+    document.getElementById('autoBtn').classList.add('active-btn');
+  } else {
+    isAutoPlaying = true;
+    document.getElementById('autoBtn').textContent = '⏸ Pause';
+    autoPlayTimer = setTimeout(() => { nextScene(); }, scenes[currentScene].duration);
+  }
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); nextScene(); }
+  if (e.key === 'ArrowLeft') { e.preventDefault(); prevScene(); }
+});
+
+// Click navigation on the app frame
+document.getElementById('appFrame').addEventListener('click', (e) => {
+  // Don't navigate if clicking on interactive elements
+  if (e.target.closest('button, a, [onclick]')) return;
+});
+
+// Initial render
+renderScene(0);
+</script>

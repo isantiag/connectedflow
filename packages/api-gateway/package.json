@@ -1,0 +1,31 @@
+{
+  "name": "@connectedflow/api-gateway",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint src/",
+    "test": "vitest --run",
+    "clean": "rm -rf dist .turbo"
+  },
+  "dependencies": {
+    "@connectedflow/shared-types": "*",
+    "@connectedflow/core-services": "*",
+    "@connectedflow/ai-services": "*",
+    "@connectedflow/integration-services": "*",
+    "fastify": "^5.3.3",
+    "@fastify/cors": "^11.0.0",
+    "@fastify/websocket": "^11.0.0",
+    "graphql": "^16.10.0",
+    "graphql-yoga": "^5.12.0",
+    "ioredis": "^5.6.1",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.1",
+    "@types/uuid": "^10.0.0",
+    "@types/ws": "^8.18.1"
+  }
+}

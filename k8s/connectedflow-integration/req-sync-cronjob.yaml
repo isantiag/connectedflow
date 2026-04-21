@@ -1,0 +1,37 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: req-sync
+  namespace: connectedflow-integration
+  labels:
+    app: req-sync
+    app.kubernetes.io/part-of: connectedflow
+spec:
+  schedule: "0 */6 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            app: req-sync
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: req-sync
+              image: connectedflow/req-sync:latest
+              envFrom:
+                - configMapRef:
+                    name: connectedflow-config
+                - secretRef:
+                    name: connectedflow-secrets
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  cpu: 500m
+                  memory: 256Mi

@@ -1,0 +1,91 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: connectedflow-postgres
+    environment:
+      POSTGRES_USER: connectedflow
+      POSTGRES_PASSWORD: connectedflow_dev
+      POSTGRES_DB: connectedflow
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U connectedflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  timescaledb:
+    image: timescale/timescaledb:latest-pg16
+    container_name: connectedflow-timescaledb
+    environment:
+      POSTGRES_USER: connectedflow
+      POSTGRES_PASSWORD: connectedflow_dev
+      POSTGRES_DB: connectedflow_timeseries
+    ports:
+      - "5433:5432"
+    volumes:
+      - timescaledb_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U connectedflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: connectedflow-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    container_name: connectedflow-minio
+    environment:
+      MINIO_ROOT_USER: connectedflow
+      MINIO_ROOT_PASSWORD: connectedflow_dev
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  python-ai:
+    build:
+      context: ./services/python-ai
+      dockerfile: Dockerfile
+    container_name: connectedflow-python-ai
+    environment:
+      LLM_PROVIDER: openai
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      CONFIDENCE_THRESHOLD: "0.7"
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  timescaledb_data:
+  redis_data:
+  minio_data:

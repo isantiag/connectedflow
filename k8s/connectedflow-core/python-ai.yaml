@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: python-ai
+  namespace: connectedflow-core
+  labels:
+    app: python-ai
+    app.kubernetes.io/part-of: connectedflow
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: python-ai
+  template:
+    metadata:
+      labels:
+        app: python-ai
+    spec:
+      containers:
+        - name: python-ai
+          image: connectedflow/python-ai:latest
+          ports:
+            - containerPort: 8000
+              name: http
+          envFrom:
+            - configMapRef:
+                name: connectedflow-config
+            - secretRef:
+                name: connectedflow-secrets
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 500m
+              memory: 512Mi
+            limits:
+              cpu: "2"
+              memory: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: python-ai
+  namespace: connectedflow-core
+  labels:
+    app: python-ai
+    app.kubernetes.io/part-of: connectedflow
+spec:
+  selector:
+    app: python-ai
+  ports:
+    - port: 8000
+      targetPort: 8000
+      protocol: TCP
+      name: http
+  type: ClusterIP

@@ -1,0 +1,13 @@
+{
+  "/_not-found/page": "/_not-found",
+  "/documents/page": "/documents",
+  "/live/page": "/live",
+  "/baselines/page": "/baselines",
+  "/signals/import/page": "/signals/import",
+  "/signals/page": "/signals",
+  "/traceability/page": "/traceability",
+  "/wiring/page": "/wiring",
+  "/page": "/",
+  "/signals/[id]/page": "/signals/[id]",
+  "/workflows/page": "/workflows"
+}

@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: timescaledb
+  namespace: connectedflow-data
+  labels:
+    app: timescaledb
+    app.kubernetes.io/part-of: connectedflow
+spec:
+  serviceName: timescaledb
+  replicas: 1
+  selector:
+    matchLabels:
+      app: timescaledb
+  template:
+    metadata:
+      labels:
+        app: timescaledb
+    spec:
+      containers:
+        - name: timescaledb
+          image: timescale/timescaledb:latest-pg16
+          ports:
+            - containerPort: 5432
+              name: postgres
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: connectedflow-secrets
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: connectedflow-secrets
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_DB
+              value: connectedflow_timeseries
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "connectedflow"]
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: "2"
+              memory: 2Gi
+          volumeMounts:
+            - name: timescaledb-data
+              mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+    - metadata:
+        name: timescaledb-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 50Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: timescaledb
+  namespace: connectedflow-data
+  labels:
+    app: timescaledb
+    app.kubernetes.io/part-of: connectedflow
+spec:
+  selector:
+    app: timescaledb
+  ports:
+    - port: 5432
+      targetPort: 5432
+      name: postgres
+  clusterIP: None

@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hw-adapter
+  namespace: connectedflow-integration
+  labels:
+    app: hw-adapter
+    app.kubernetes.io/part-of: connectedflow
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hw-adapter
+  template:
+    metadata:
+      labels:
+        app: hw-adapter
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      containers:
+        - name: hw-adapter
+          image: connectedflow/hw-adapter:latest
+          ports:
+            - containerPort: 3001
+              name: http
+          envFrom:
+            - configMapRef:
+                name: connectedflow-config
+            - secretRef:
+                name: connectedflow-secrets
+          securityContext:
+            privileged: true
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi

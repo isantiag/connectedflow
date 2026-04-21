@@ -1,0 +1,13 @@
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/documents/page": "app/documents/page.js",
+  "/live/page": "app/live/page.js",
+  "/baselines/page": "app/baselines/page.js",
+  "/signals/import/page": "app/signals/import/page.js",
+  "/signals/page": "app/signals/page.js",
+  "/traceability/page": "app/traceability/page.js",
+  "/wiring/page": "app/wiring/page.js",
+  "/page": "app/page.js",
+  "/signals/[id]/page": "app/signals/[id]/page.js",
+  "/workflows/page": "app/workflows/page.js"
+}
