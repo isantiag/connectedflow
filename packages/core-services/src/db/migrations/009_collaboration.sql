@@ -3,7 +3,7 @@
 -- Signal ownership: who owns the source side vs destination side
 CREATE TABLE IF NOT EXISTS signal_ownership (
   id VARCHAR(26) PRIMARY KEY,
-  signal_id VARCHAR(26) NOT NULL REFERENCES signals(id) ON DELETE CASCADE,
+  signal_id VARCHAR(26) NOT NULL REFERENCES signal(id) ON DELETE CASCADE,
   source_owner_id VARCHAR(26) NOT NULL,
   dest_owner_id VARCHAR(26),
   source_org VARCHAR(255) NOT NULL,
@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS signal_ownership (
 -- Comment threads on signals
 CREATE TABLE IF NOT EXISTS signal_comment (
   id VARCHAR(26) PRIMARY KEY,
-  signal_id VARCHAR(26) NOT NULL REFERENCES signals(id) ON DELETE CASCADE,
+  signal_id VARCHAR(26) NOT NULL REFERENCES signal(id) ON DELETE CASCADE,
   parent_id VARCHAR(26) REFERENCES signal_comment(id),
   author_id VARCHAR(26) NOT NULL,
   author_name VARCHAR(255) NOT NULL,
@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS signal_comment (
 
 -- Edit locks for conflict detection
 CREATE TABLE IF NOT EXISTS signal_edit_lock (
-  signal_id VARCHAR(26) PRIMARY KEY REFERENCES signals(id) ON DELETE CASCADE,
+  signal_id VARCHAR(26) PRIMARY KEY REFERENCES signal(id) ON DELETE CASCADE,
   locked_by VARCHAR(26) NOT NULL,
   locked_by_name VARCHAR(255) NOT NULL,
   locked_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -46,4 +46,4 @@ CREATE TABLE IF NOT EXISTS organization (
 );
 
 -- User-org mapping
-ALTER TABLE users ADD COLUMN IF NOT EXISTS org_id VARCHAR(26);
+ALTER TABLE "user" ADD COLUMN IF NOT EXISTS org_id VARCHAR(26);

@@ -1,4 +1,4 @@
-// File: C:\Users\Valued Customer\Documents\ConnectedICD\packages\web-client\src\app\workflows\page.tsx
+// File: /mnt/c/Users/Valued Customer/Documents/ConnectedICD/packages/web-client/src/app/workflows/page.tsx
 import * as entry from '../../../../src/app/workflows/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

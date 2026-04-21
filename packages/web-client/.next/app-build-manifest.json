@@ -1,102 +1,71 @@
 {
   "pages": {
-    "/_not-found/page": [
-      "static/chunks/webpack-9c33d5f0afbcfaed.js",
-      "static/chunks/87c73c54-24122e7b92478d00.js",
-      "static/chunks/18-90b700ea37b686a2.js",
-      "static/chunks/main-app-cb71a1b72806cebe.js",
-      "static/chunks/app/_not-found/page-b7bc597b826606ed.js"
-    ],
     "/layout": [
-      "static/chunks/webpack-9c33d5f0afbcfaed.js",
-      "static/chunks/87c73c54-24122e7b92478d00.js",
-      "static/chunks/18-90b700ea37b686a2.js",
-      "static/chunks/main-app-cb71a1b72806cebe.js",
-      "static/css/6893967412e0dbd0.css",
-      "static/chunks/app/layout-91749d4080a7bba1.js"
-    ],
-    "/documents/page": [
-      "static/chunks/webpack-9c33d5f0afbcfaed.js",
-      "static/chunks/87c73c54-24122e7b92478d00.js",
-      "static/chunks/18-90b700ea37b686a2.js",
-      "static/chunks/main-app-cb71a1b72806cebe.js",
-      "static/chunks/115-811ddf5964c2f749.js",
-      "static/chunks/app/documents/page-606a69df249016be.js"
-    ],
-    "/live/page": [
-      "static/chunks/webpack-9c33d5f0afbcfaed.js",
-      "static/chunks/87c73c54-24122e7b92478d00.js",
-      "static/chunks/18-90b700ea37b686a2.js",
-      "static/chunks/main-app-cb71a1b72806cebe.js",
-      "static/chunks/115-811ddf5964c2f749.js",
-      "static/chunks/app/live/page-dd52be19a8785bb2.js"
-    ],
-    "/baselines/page": [
-      "static/chunks/webpack-9c33d5f0afbcfaed.js",
-      "static/chunks/87c73c54-24122e7b92478d00.js",
-      "static/chunks/18-90b700ea37b686a2.js",
-      "static/chunks/main-app-cb71a1b72806cebe.js",
-      "static/chunks/115-811ddf5964c2f749.js",
-      "static/chunks/app/baselines/page-e9aa9e64ff6c3dac.js"
-    ],
-    "/signals/import/page": [
-      "static/chunks/webpack-9c33d5f0afbcfaed.js",
-      "static/chunks/87c73c54-24122e7b92478d00.js",
-      "static/chunks/18-90b700ea37b686a2.js",
-      "static/chunks/main-app-cb71a1b72806cebe.js",
-      "static/chunks/115-811ddf5964c2f749.js",
-      "static/chunks/app/signals/import/page-d4c7ddddea9eb90e.js"
-    ],
-    "/signals/page": [
-      "static/chunks/webpack-9c33d5f0afbcfaed.js",
-      "static/chunks/87c73c54-24122e7b92478d00.js",
-      "static/chunks/18-90b700ea37b686a2.js",
-      "static/chunks/main-app-cb71a1b72806cebe.js",
-      "static/chunks/115-811ddf5964c2f749.js",
-      "static/chunks/app/signals/page-080d17553ab8c91c.js"
-    ],
-    "/traceability/page": [
-      "static/chunks/webpack-9c33d5f0afbcfaed.js",
-      "static/chunks/87c73c54-24122e7b92478d00.js",
-      "static/chunks/18-90b700ea37b686a2.js",
-      "static/chunks/main-app-cb71a1b72806cebe.js",
-      "static/chunks/115-811ddf5964c2f749.js",
-      "static/chunks/app/traceability/page-ef773dcead96bf68.js"
-    ],
-    "/wiring/page": [
-      "static/chunks/webpack-9c33d5f0afbcfaed.js",
-      "static/chunks/87c73c54-24122e7b92478d00.js",
-      "static/chunks/18-90b700ea37b686a2.js",
-      "static/chunks/main-app-cb71a1b72806cebe.js",
-      "static/css/599369d853c61df7.css",
-      "static/chunks/6b3bb038-a8bdc29cde6bc0e5.js",
-      "static/chunks/115-811ddf5964c2f749.js",
-      "static/chunks/605-17c806b7ed78b6c2.js",
-      "static/chunks/app/wiring/page-096f90914575ca5d.js"
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/css/app/layout.css",
+      "static/chunks/app/layout.js"
     ],
     "/page": [
-      "static/chunks/webpack-9c33d5f0afbcfaed.js",
-      "static/chunks/87c73c54-24122e7b92478d00.js",
-      "static/chunks/18-90b700ea37b686a2.js",
-      "static/chunks/main-app-cb71a1b72806cebe.js",
-      "static/chunks/115-811ddf5964c2f749.js",
-      "static/chunks/app/page-4e2f1331738381f2.js"
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/page.js"
     ],
-    "/signals/[id]/page": [
-      "static/chunks/webpack-9c33d5f0afbcfaed.js",
-      "static/chunks/87c73c54-24122e7b92478d00.js",
-      "static/chunks/18-90b700ea37b686a2.js",
-      "static/chunks/main-app-cb71a1b72806cebe.js",
-      "static/chunks/115-811ddf5964c2f749.js",
-      "static/chunks/app/signals/[id]/page-17ef82099a5ae1be.js"
+    "/signals/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/signals/page.js"
+    ],
+    "/n2-matrix/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/n2-matrix/page.js"
+    ],
+    "/ingestion/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/ingestion/page.js"
+    ],
+    "/ai-analysis/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/ai-analysis/page.js"
+    ],
+    "/anomalies/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/anomalies/page.js"
+    ],
+    "/baselines/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/baselines/page.js"
+    ],
+    "/documents/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/documents/page.js"
+    ],
+    "/live/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/live/page.js"
+    ],
+    "/wiring/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/css/app/wiring/page.css",
+      "static/chunks/app/wiring/page.js"
+    ],
+    "/traceability/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/traceability/page.js"
     ],
     "/workflows/page": [
-      "static/chunks/webpack-9c33d5f0afbcfaed.js",
-      "static/chunks/87c73c54-24122e7b92478d00.js",
-      "static/chunks/18-90b700ea37b686a2.js",
-      "static/chunks/main-app-cb71a1b72806cebe.js",
-      "static/chunks/115-811ddf5964c2f749.js",
-      "static/chunks/app/workflows/page-4653b93e4d8d885d.js"
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/workflows/page.js"
     ]
   }
 }

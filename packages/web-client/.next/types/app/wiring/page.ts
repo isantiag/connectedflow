@@ -1,4 +1,4 @@
-// File: C:\Users\Valued Customer\Documents\ConnectedICD\packages\web-client\src\app\wiring\page.tsx
+// File: /mnt/c/Users/Valued Customer/Documents/ConnectedICD/packages/web-client/src/app/wiring/page.tsx
 import * as entry from '../../../../src/app/wiring/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 
