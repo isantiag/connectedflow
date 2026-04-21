@@ -161,3 +161,35 @@ async def ai_change_impact(signal_id: str) -> str:
         "impact_level": "high" if len(affected_systems) > 3 else "medium" if len(affected_systems) > 1 else "low",
         "recommendation": f"Changing {signal.get('name', '')} affects {len(affected_systems)} systems and {len(same_systems)} signals. Notify: {', '.join(affected_systems)}"
     }, indent=2)
+
+# ── AI Analysis ───────────────────────────────────────────────────
+
+@mcp.tool()
+async def analyze_throughput(project_id: str = "") -> str:
+    """AI analyzes bus throughput — detects bottlenecks, overloaded buses, recommends optimizations."""
+    return json.dumps(await _api("POST", "/api/ai/throughput", {"projectId": project_id or None}), indent=2)
+
+@mcp.tool()
+async def propose_routing(source_system: str, dest_system: str, data_requirements: str) -> str:
+    """AI proposes optimal signal routing between two systems — considers bus utilization, protocol suitability, redundancy, latency, wire weight."""
+    return json.dumps(await _api("POST", "/api/ai/routing", {"sourceSystem": source_system, "destSystem": dest_system, "dataRequirements": data_requirements}), indent=2)
+
+@mcp.tool()
+async def analyze_trends(project_id: str = "") -> str:
+    """AI analyzes ICD evolution trends across baselines — maturity, growth rate, stability, risks."""
+    return json.dumps(await _api("POST", "/api/ai/trends", {"projectId": project_id or None}), indent=2)
+
+@mcp.tool()
+async def validate_constraints(project_id: str = "") -> str:
+    """AI validates all protocol constraints — bus limits, timing, naming, duplicates, orphans."""
+    return json.dumps(await _api("POST", "/api/ai/constraints", {"projectId": project_id or None}), indent=2)
+
+@mcp.tool()
+async def architecture_insights(project_id: str = "") -> str:
+    """AI provides architecture-level insights — coupling analysis, redundancy gaps, consolidation opportunities, single points of failure."""
+    return json.dumps(await _api("POST", "/api/ai/architecture", {"projectId": project_id or None}), indent=2)
+
+@mcp.tool()
+async def detect_anomalies(project_id: str = "") -> str:
+    """AI detects anomalies beyond rule-based checks — unusual patterns, duplicates, missing reciprocals, protocol mismatches."""
+    return json.dumps(await _api("POST", "/api/ai/anomalies", {"projectId": project_id or None}), indent=2)
