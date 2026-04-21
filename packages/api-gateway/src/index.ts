@@ -1,4 +1,4 @@
-// @connectedflow/api-gateway
+// @connectedicd/api-gateway
 // REST, GraphQL, and WebSocket API gateway.
 
 export { createServer, type ServiceContainer } from './server.js';

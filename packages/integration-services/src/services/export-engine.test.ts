@@ -10,8 +10,8 @@ import type {
   BusId,
   ConnectorId,
   CableBundleId,
-} from '@connectedflow/shared-types';
-import type { CanBusAttrs, Arinc429Attrs } from '@connectedflow/shared-types';
+} from '@connectedicd/shared-types';
+import type { CanBusAttrs, Arinc429Attrs } from '@connectedicd/shared-types';
 import {
   ExportEngine,
   type ExportSignalData,

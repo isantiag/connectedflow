@@ -6,8 +6,8 @@
  */
 
 import type { FastifyRequest, FastifyReply } from 'fastify';
-import type { UserId } from '@connectedflow/shared-types';
-import type { RbacService, Resource, Action } from '@connectedflow/core-services';
+import type { UserId } from '@connectedicd/shared-types';
+import type { RbacService, Resource, Action } from '@connectedicd/core-services';
 
 export interface RbacOptions {
   resource: Resource;

@@ -1,4 +1,4 @@
-# ConnectedFlow — AI-Driven ICD Management Platform: Requirements
+# ConnectedICD — AI-Driven ICD Management Platform: Requirements
 
 ## Requirement 1
 

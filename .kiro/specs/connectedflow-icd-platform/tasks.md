@@ -1,8 +1,8 @@
-# Implementation Plan: ConnectedFlow — AI-Driven ICD Management Platform
+# Implementation Plan: ConnectedICD — AI-Driven ICD Management Platform
 
 ## Overview
 
-This plan implements ConnectedFlow as a TypeScript monorepo (with a Python AI service for LLM/ML workloads) with Kubernetes-deployed microservices. Tasks are ordered to build foundational data models first, then core services, AI services, integration layer, and finally the Next.js client. Each service is wired into the API gateway incrementally. Property-based tests use fast-check (TypeScript) and Hypothesis (Python) and are placed close to the implementation they validate.
+This plan implements ConnectedICD as a TypeScript monorepo (with a Python AI service for LLM/ML workloads) with Kubernetes-deployed microservices. Tasks are ordered to build foundational data models first, then core services, AI services, integration layer, and finally the Next.js client. Each service is wired into the API gateway incrementally. Property-based tests use fast-check (TypeScript) and Hypothesis (Python) and are placed close to the implementation they validate.
 
 ## Tasks
 
@@ -413,7 +413,7 @@ This plan implements ConnectedFlow as a TypeScript monorepo (with a Python AI se
 - [x] 20. Kubernetes deployment configuration
   - [x] 20.1 Create Kubernetes manifests and Helm charts
     - Create Deployments/StatefulSets for all services: API gateway, core services, AI services (TypeScript), AI services (Python), hardware adapter (host network), PostgreSQL, TimescaleDB, Redis
-    - Create namespaces: `connectedflow-core`, `connectedflow-data`, `connectedflow-integration`
+    - Create namespaces: `connectedicd-core`, `connectedicd-data`, `connectedicd-integration`
     - Configure Ingress with TLS termination
     - Create ConfigMaps and Secrets for service configuration
     - Create CronJob for requirements sync

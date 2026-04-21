@@ -18,7 +18,7 @@ import type { UserRepository, UserRow } from '../repositories/user-repository.js
 import type { RoleRepository, RoleRow } from '../repositories/role-repository.js';
 import type { UserRoleRepository, UserRoleRow } from '../repositories/user-role-repository.js';
 import type { RolePermissionRepository, RolePermissionRow } from '../repositories/role-permission-repository.js';
-import type { UserId, RoleId } from '@connectedflow/shared-types';
+import type { UserId, RoleId } from '@connectedicd/shared-types';
 
 // ---------------------------------------------------------------------------
 // In-memory repository fakes

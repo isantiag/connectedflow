@@ -20,7 +20,7 @@ import type {
   ChangeRequestRow,
   ChangeRequestQueryFilter,
 } from '../repositories/change-request-repository.js';
-import type { SignalId, UserId, ChangeRequestId } from '@connectedflow/shared-types';
+import type { SignalId, UserId, ChangeRequestId } from '@connectedicd/shared-types';
 
 // ---------------------------------------------------------------------------
 // In-memory fakes

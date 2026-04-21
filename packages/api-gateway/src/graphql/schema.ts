@@ -4,8 +4,8 @@
  */
 
 import { createSchema } from 'graphql-yoga';
-import type { SignalId, ProjectId, Pagination, SignalStatus } from '@connectedflow/shared-types';
-import type { SignalService, SignalFilter } from '@connectedflow/core-services';
+import type { SignalId, ProjectId, Pagination, SignalStatus } from '@connectedicd/shared-types';
+import type { SignalService, SignalFilter } from '@connectedicd/core-services';
 
 export interface GraphQLDeps {
   signalService: SignalService;

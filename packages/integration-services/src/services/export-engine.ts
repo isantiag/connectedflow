@@ -9,8 +9,8 @@
  * - Certification package: JSON traceability + change history bundle
  */
 
-import type { Signal, TransportLayer, PhysicalLayer } from '@connectedflow/shared-types';
-import type { CanBusAttrs, Arinc429Attrs } from '@connectedflow/shared-types';
+import type { Signal, TransportLayer, PhysicalLayer } from '@connectedicd/shared-types';
+import type { CanBusAttrs, Arinc429Attrs } from '@connectedicd/shared-types';
 
 // ---------------------------------------------------------------------------
 // Types

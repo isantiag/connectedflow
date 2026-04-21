@@ -1,11 +1,11 @@
-"""ConnectedFlow MCP Server — exposes ICD management API as MCP tools."""
+"""ConnectedICD MCP Server — exposes ICD management API as MCP tools."""
 import os, json, re, uuid
 import httpx
 from mcp.server.fastmcp import FastMCP
 
 API_URL = os.environ.get("CONNECTEDFLOW_API_URL", "http://localhost:4000")
 
-mcp = FastMCP("connectedflow", instructions="ConnectedFlow aerospace ICD management. Manage signals (3-layer: logical, transport, physical), baselines, workflows, and run quality checks across ARINC 429, CAN, MIL-STD-1553, AFDX protocols.")
+mcp = FastMCP("connectedicd", instructions="ConnectedICD aerospace ICD management. Manage signals (3-layer: logical, transport, physical), baselines, workflows, and run quality checks across ARINC 429, CAN, MIL-STD-1553, AFDX protocols.")
 
 async def _api(method: str, path: str, body: dict | None = None) -> dict | list:
     async with httpx.AsyncClient() as c:

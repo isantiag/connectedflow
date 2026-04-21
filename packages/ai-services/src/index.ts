@@ -1,4 +1,4 @@
-// @connectedflow/ai-services
+// @connectedicd/ai-services
 // Document Parser Service, Anomaly Detection Service, AI Assistant Service.
 
 export * from './repositories/parse-job-repository.js';

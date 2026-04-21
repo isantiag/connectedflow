@@ -5,7 +5,7 @@
  * BaselineService and other services that need audit recording.
  */
 
-import type { UserId, AuditEntryId, Pagination, PaginatedResult } from '@connectedflow/shared-types';
+import type { UserId, AuditEntryId, Pagination, PaginatedResult } from '@connectedicd/shared-types';
 import type {
   AuditEntryRepository,
   AuditEntryRow,

@@ -6,7 +6,7 @@
  */
 
 import type { Knex } from 'knex';
-import type { ValidationResult, BusId } from '@connectedflow/shared-types';
+import type { ValidationResult, BusId } from '@connectedicd/shared-types';
 import type { ProtocolPlugin, JSONSchema, MigrationResult } from './protocols/protocol-plugin.js';
 import { Arinc429Plugin } from './protocols/arinc429-plugin.js';
 import { CanBusPlugin } from './protocols/canbus-plugin.js';

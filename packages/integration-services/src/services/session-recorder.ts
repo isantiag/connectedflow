@@ -1,4 +1,4 @@
-import type { SessionId, SignalId, AdapterId } from '@connectedflow/shared-types';
+import type { SessionId, SignalId, AdapterId } from '@connectedicd/shared-types';
 import type { LiveDataEvent } from './live-data-monitor.js';
 
 // ---------------------------------------------------------------------------

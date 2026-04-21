@@ -1,4 +1,4 @@
-import type { AdapterId } from '@connectedflow/shared-types';
+import type { AdapterId } from '@connectedicd/shared-types';
 import type {
   AdapterConfig,
   AdapterConnection,

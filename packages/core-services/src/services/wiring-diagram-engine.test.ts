@@ -16,7 +16,7 @@ import type {
   ProtocolId,
   BusId,
   EquipmentId,
-} from '@connectedflow/shared-types';
+} from '@connectedicd/shared-types';
 
 // ---------------------------------------------------------------------------
 // Helpers

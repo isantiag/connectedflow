@@ -38,8 +38,8 @@ export class RequirementGeneratorService {
       reqs.push({
         displayId: `ITF-${String(counter).padStart(3, '0')}`,
         text: `${s.source_system} shall transmit ${s.name} (${s.data_type ?? 'data'}) to ${s.dest_system} via ${protocol}${rate}${range}.`,
-        rationale: `Auto-generated from ConnectedFlow signal ${s.name} (ID: ${s.id}). Ensures interface definition is captured as a traceable requirement.`,
-        source: `ConnectedFlow signal ${s.id}`,
+        rationale: `Auto-generated from ConnectedICD signal ${s.name} (ID: ${s.id}). Ensures interface definition is captured as a traceable requirement.`,
+        source: `ConnectedICD signal ${s.id}`,
         level: 'system',
         verificationMethod: 'inspection',
         isInterface: true,
@@ -63,9 +63,9 @@ export class RequirementGeneratorService {
     return `<?xml version="1.0" encoding="UTF-8"?>
 <REQ-IF xmlns="http://www.omg.org/spec/ReqIF/20110401/reqif.xsd">
   <THE-HEADER>
-    <REQ-IF-HEADER IDENTIFIER="connectedflow-generated">
+    <REQ-IF-HEADER IDENTIFIER="connectedicd-generated">
       <CREATION-TIME>${new Date().toISOString()}</CREATION-TIME>
-      <SOURCE-TOOL-ID>ConnectedFlow</SOURCE-TOOL-ID>
+      <SOURCE-TOOL-ID>ConnectedICD</SOURCE-TOOL-ID>
     </REQ-IF-HEADER>
   </THE-HEADER>
   <CORE-CONTENT>
@@ -86,7 +86,7 @@ ${specObjects}
         const id = crypto.randomUUID().replace(/-/g, '').slice(0, 26);
         const res = await fetch(`${assureFlowUrl}/v1/projects/${projectId}/requirements`, {
           method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ id, canonicalId: `connectedflow.requirement.${id}`, displayId: r.displayId, projectId, text: r.text, rationale: r.rationale, source: r.source, level: r.level, verificationMethod: r.verificationMethod, isInterface: r.isInterface, status: 'draft', ownerId: 'system', isDerived: true, version: '1', createdBy: 'system', updatedBy: 'system' }),
+          body: JSON.stringify({ id, canonicalId: `connectedicd.requirement.${id}`, displayId: r.displayId, projectId, text: r.text, rationale: r.rationale, source: r.source, level: r.level, verificationMethod: r.verificationMethod, isInterface: r.isInterface, status: 'draft', ownerId: 'system', isDerived: true, version: '1', createdBy: 'system', updatedBy: 'system' }),
         });
         if (res.ok) pushed++; else errors++;
       } catch { errors++; }

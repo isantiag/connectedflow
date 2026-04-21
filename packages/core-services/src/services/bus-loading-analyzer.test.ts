@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BusLoadingAnalyzer, type BusUtilizationReport } from './bus-loading-analyzer.js';
-import type { BusId } from '@connectedflow/shared-types';
+import type { BusId } from '@connectedicd/shared-types';
 
 // ---------------------------------------------------------------------------
 // Knex mock helpers

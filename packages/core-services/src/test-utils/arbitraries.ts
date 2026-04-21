@@ -1,5 +1,5 @@
 /**
- * Custom fast-check arbitraries for ConnectedFlow property-based tests.
+ * Custom fast-check arbitraries for ConnectedICD property-based tests.
  *
  * Each generator produces valid data conforming to the database schema
  * constraints and shared-type interfaces.
@@ -19,7 +19,7 @@ import type {
   EquipmentId,
   SnapshotId,
   ParseJobId,
-} from '@connectedflow/shared-types';
+} from '@connectedicd/shared-types';
 import type {
   Signal,
   SignalStatus,
@@ -29,14 +29,14 @@ import type {
   PhysicalLayer,
   ByteOrder,
   Encoding,
-} from '@connectedflow/shared-types';
+} from '@connectedicd/shared-types';
 import type {
   Bus,
   RedundancyMode,
   Connector,
   CableBundle,
   ProtocolDefinition,
-} from '@connectedflow/shared-types';
+} from '@connectedicd/shared-types';
 import type {
   Arinc429Attrs,
   CanBusAttrs,
@@ -44,7 +44,7 @@ import type {
   Arinc664Attrs,
   KnownProtocol,
   ProtocolAttrs,
-} from '@connectedflow/shared-types';
+} from '@connectedicd/shared-types';
 
 // ---------------------------------------------------------------------------
 // Branded-ID helpers

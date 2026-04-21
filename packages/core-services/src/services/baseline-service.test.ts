@@ -18,7 +18,7 @@ import type {
   BusId,
   ConnectorId,
   CableBundleId,
-} from '@connectedflow/shared-types';
+} from '@connectedicd/shared-types';
 
 // ---------------------------------------------------------------------------
 // Helpers — build a fake Knex that records operations

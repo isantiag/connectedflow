@@ -18,7 +18,7 @@ import type {
   PhysicalLayer,
   Pagination,
   PaginatedResult,
-} from '@connectedflow/shared-types';
+} from '@connectedicd/shared-types';
 import { ConnectionManager } from '../db/connection.js';
 import {
   BaselineRepository,

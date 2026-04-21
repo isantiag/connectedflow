@@ -10,7 +10,7 @@
  * - bus_speed: "high" (100 kbps) or "low" (12.5 kbps)
  */
 
-import type { ValidationResult, ValidationError } from '@connectedflow/shared-types';
+import type { ValidationResult, ValidationError } from '@connectedicd/shared-types';
 import type { ProtocolPlugin, JSONSchema, MigrationResult } from './protocol-plugin.js';
 
 const VALID_SDI = ['00', '01', '10', '11'];

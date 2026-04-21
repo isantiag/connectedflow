@@ -6,7 +6,7 @@
  * SSO/MFA authentication.
  */
 
-import type { UserId, RoleId } from '@connectedflow/shared-types';
+import type { UserId, RoleId } from '@connectedicd/shared-types';
 import type { UserRepository, UserRow } from '../repositories/user-repository.js';
 import type { RoleRepository, RoleRow } from '../repositories/role-repository.js';
 import type { UserRoleRepository } from '../repositories/user-role-repository.js';

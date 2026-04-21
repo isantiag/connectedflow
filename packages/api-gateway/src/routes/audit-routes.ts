@@ -3,8 +3,8 @@
  */
 
 import type { FastifyInstance } from 'fastify';
-import type { Pagination } from '@connectedflow/shared-types';
-import type { AuditService, AuditFilter, RbacService } from '@connectedflow/core-services';
+import type { Pagination } from '@connectedicd/shared-types';
+import type { AuditService, AuditFilter, RbacService } from '@connectedicd/core-services';
 import { createRbacHook } from '../middleware/rbac-middleware.js';
 
 export interface AuditRouteDeps {

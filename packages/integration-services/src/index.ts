@@ -1,4 +1,4 @@
-// @connectedflow/integration-services
+// @connectedicd/integration-services
 // Hardware Adapter Manager, Traceability & Export services.
 
 export { HardwareAdapterManager } from './services/hardware-adapter-manager.js';

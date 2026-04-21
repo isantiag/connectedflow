@@ -1,4 +1,4 @@
-"""ConnectedFlow Python AI Service — FastAPI application."""
+"""ConnectedICD Python AI Service — FastAPI application."""
 
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from pydantic import BaseModel, Field
@@ -8,7 +8,7 @@ from extraction.pipeline import ExtractionPipeline, ExtractionRequest, Extractio
 from assistant.chat import AssistantService, ChatRequest, ChatResponse
 
 app = FastAPI(
-    title="ConnectedFlow AI Service",
+    title="ConnectedICD AI Service",
     description="LLM-powered document extraction and AI assistant for ICD management",
     version="0.1.0",
 )

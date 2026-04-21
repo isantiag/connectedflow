@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import type { AdapterId } from '@connectedflow/shared-types';
+import type { AdapterId } from '@connectedicd/shared-types';
 import { HardwareAdapterManager } from './hardware-adapter-manager.js';
 import { SimulatedAdapterDriver } from './simulated-adapter-driver.js';
 import type { AdapterInfo } from './hardware-adapter-types.js';

@@ -6,7 +6,7 @@ import type {
   SignalId,
   Encoding,
   ByteOrder,
-} from '@connectedflow/shared-types';
+} from '@connectedicd/shared-types';
 
 // ---------------------------------------------------------------------------
 // Types

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { AdapterId, ChannelId, SessionId, SignalId } from '@connectedflow/shared-types';
+import type { AdapterId, ChannelId, SessionId, SignalId } from '@connectedicd/shared-types';
 import {
   BusDataDecoder,
   DeviationDetector,

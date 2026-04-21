@@ -5,7 +5,7 @@
  * Uses an abstracted DB interface (TraceLinkDb) for testability.
  */
 
-import type { SignalId, TraceLinkId } from '@connectedflow/shared-types';
+import type { SignalId, TraceLinkId } from '@connectedicd/shared-types';
 
 // ---------------------------------------------------------------------------
 // Types

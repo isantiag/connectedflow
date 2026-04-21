@@ -3,8 +3,8 @@
  */
 
 import type { FastifyInstance } from 'fastify';
-import type { BaselineId, Pagination } from '@connectedflow/shared-types';
-import type { BaselineService, BaselineFilter, RbacService } from '@connectedflow/core-services';
+import type { BaselineId, Pagination } from '@connectedicd/shared-types';
+import type { BaselineService, BaselineFilter, RbacService } from '@connectedicd/core-services';
 import { createRbacHook } from '../middleware/rbac-middleware.js';
 
 export interface BaselineRouteDeps {

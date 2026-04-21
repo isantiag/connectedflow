@@ -16,14 +16,14 @@ import type {
   ValidationResult,
   ValidationError,
   Encoding,
-} from '@connectedflow/shared-types';
+} from '@connectedicd/shared-types';
 import type {
   KnownProtocol,
   Arinc429Attrs,
   CanBusAttrs,
   MilStd1553Attrs,
   Arinc664Attrs,
-} from '@connectedflow/shared-types';
+} from '@connectedicd/shared-types';
 
 // ---------------------------------------------------------------------------
 // Constants

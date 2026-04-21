@@ -7,7 +7,7 @@
  */
 
 import { type Knex } from 'knex';
-import { type ParseJobId } from '@connectedflow/shared-types';
+import { type ParseJobId } from '@connectedicd/shared-types';
 import {
   ParseJobRepository,
   type ParseJobRow,

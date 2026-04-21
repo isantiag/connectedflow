@@ -13,7 +13,7 @@ import type {
   PhysicalLayer,
   Connector,
   CableBundle,
-} from '@connectedflow/shared-types';
+} from '@connectedicd/shared-types';
 
 // ---------------------------------------------------------------------------
 // Types

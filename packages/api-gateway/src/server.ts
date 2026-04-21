@@ -9,7 +9,7 @@ import websocket from '@fastify/websocket';
 import { createYoga } from 'graphql-yoga';
 import { v4 as uuidv4 } from 'uuid';
 
-import type { SignalService, RbacService, WorkflowService, AuditService, BaselineService } from '@connectedflow/core-services';
+import type { SignalService, RbacService, WorkflowService, AuditService, BaselineService } from '@connectedicd/core-services';
 
 import { errorHandler } from './middleware/error-handler.js';
 import { registerSignalRoutes } from './routes/signal-routes.js';

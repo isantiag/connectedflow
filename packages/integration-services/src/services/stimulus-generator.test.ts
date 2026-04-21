@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { SignalId } from '@connectedflow/shared-types';
+import type { SignalId } from '@connectedicd/shared-types';
 import { StimulusGenerator } from './stimulus-generator.js';
 import { BusDataDecoder } from './live-data-monitor.js';
 import type { IcdSignalDefinition } from './live-data-monitor.js';

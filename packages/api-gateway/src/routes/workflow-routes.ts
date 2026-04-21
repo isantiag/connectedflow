@@ -3,8 +3,8 @@
  */
 
 import type { FastifyInstance } from 'fastify';
-import type { ChangeRequestId, UserId, Pagination } from '@connectedflow/shared-types';
-import type { WorkflowService, ChangeRequestFilter, RbacService } from '@connectedflow/core-services';
+import type { ChangeRequestId, UserId, Pagination } from '@connectedicd/shared-types';
+import type { WorkflowService, ChangeRequestFilter, RbacService } from '@connectedicd/core-services';
 import { createRbacHook } from '../middleware/rbac-middleware.js';
 
 export interface WorkflowRouteDeps {

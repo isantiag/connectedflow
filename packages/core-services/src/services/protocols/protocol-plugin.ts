@@ -5,7 +5,7 @@
  * and validates transport attributes against the protocol specification.
  */
 
-import type { ValidationResult } from '@connectedflow/shared-types';
+import type { ValidationResult } from '@connectedicd/shared-types';
 
 /** JSON Schema-like descriptor for protocol-specific fields. */
 export interface FieldSchemaEntry {

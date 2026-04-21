@@ -3,9 +3,9 @@
  */
 
 import type { FastifyInstance } from 'fastify';
-import type { SignalId, ProjectId, Pagination, SignalStatus } from '@connectedflow/shared-types';
-import type { SignalService, SignalFilter } from '@connectedflow/core-services';
-import type { RbacService } from '@connectedflow/core-services';
+import type { SignalId, ProjectId, Pagination, SignalStatus } from '@connectedicd/shared-types';
+import type { SignalService, SignalFilter } from '@connectedicd/core-services';
+import type { RbacService } from '@connectedicd/core-services';
 import { createRbacHook } from '../middleware/rbac-middleware.js';
 
 export interface SignalRouteDeps {

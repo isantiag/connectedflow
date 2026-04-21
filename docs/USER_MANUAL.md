@@ -1,8 +1,8 @@
-# ConnectedFlow — User Manual
+# ConnectedICD — User Manual
 
-## What is ConnectedFlow?
+## What is ConnectedICD?
 
-ConnectedFlow is an AI-driven Interface Control Document (ICD) management platform for aerospace systems integration. It unifies all three ICD layers — logical, transport, and physical — into a single environment, replacing the fragmented toolchains (typically 2–4 tools bridged by Excel) that dominate the industry today.
+ConnectedICD is an AI-driven Interface Control Document (ICD) management platform for aerospace systems integration. It unifies all three ICD layers — logical, transport, and physical — into a single environment, replacing the fragmented toolchains (typically 2–4 tools bridged by Excel) that dominate the industry today.
 
 Target programs: eVTOL, Part 23, and Part 25 aircraft.
 
@@ -12,7 +12,7 @@ Target programs: eVTOL, Part 23, and Part 25 aircraft.
 
 ### 1. Logging In
 
-Navigate to your ConnectedFlow instance URL. Sign in with your organization's SSO credentials or local account. If MFA is enabled, you'll be prompted for a verification code after entering your password.
+Navigate to your ConnectedICD instance URL. Sign in with your organization's SSO credentials or local account. If MFA is enabled, you'll be prompted for a verification code after entering your password.
 
 ### 2. Dashboard
 
@@ -31,7 +31,7 @@ The left sidebar provides navigation to all platform features.
 
 ### Signals — The Three-Layer Model
 
-Every signal in ConnectedFlow is defined across three layers:
+Every signal in ConnectedICD is defined across three layers:
 
 | Layer | What it defines | Example fields |
 |-------|----------------|----------------|
@@ -85,7 +85,7 @@ Each issue includes a description and suggested remediation.
 
 1. Navigate to Signals → Import
 2. Drag and drop a CSV, Excel, or JSON file
-3. ConnectedFlow auto-detects columns and maps them to the signal schema
+3. ConnectedICD auto-detects columns and maps them to the signal schema
 4. Review the field mapping — green checkmarks for mapped fields, yellow badges for unmapped
 5. Click "Confirm Import" to create signals from the mapped data
 
@@ -93,7 +93,7 @@ Each issue includes a description and suggested remediation.
 
 ### AI Document Extraction
 
-ConnectedFlow can extract signal definitions from legacy ICD documents using AI.
+ConnectedICD can extract signal definitions from legacy ICD documents using AI.
 
 #### Uploading a Document
 
@@ -128,7 +128,7 @@ During processing, the AI:
 
 ### Live Data Monitoring
 
-ConnectedFlow connects to hardware bus interfaces (or simulated adapters) for real-time ICD validation.
+ConnectedICD connects to hardware bus interfaces (or simulated adapters) for real-time ICD validation.
 
 #### Starting a Monitor Session
 
@@ -160,7 +160,7 @@ Click "Pause" to freeze the display without disconnecting. Click "Resume" to con
 
 ### Wiring Diagrams
 
-ConnectedFlow generates interactive wiring diagrams from physical-layer ICD data.
+ConnectedICD generates interactive wiring diagrams from physical-layer ICD data.
 
 #### Viewing the Diagram
 
@@ -251,7 +251,7 @@ Viewers cannot approve or reject. Editors cannot approve critical changes.
 
 ### Traceability
 
-ConnectedFlow maintains bidirectional links between signals and upstream requirements in DOORS or Jama.
+ConnectedICD maintains bidirectional links between signals and upstream requirements in DOORS or Jama.
 
 #### Linking a Signal to a Requirement
 
@@ -276,7 +276,7 @@ Click "Export Matrix" to download the full traceability matrix for certification
 
 ### Anomaly Detection
 
-ConnectedFlow continuously scans for ICD anomalies across six categories:
+ConnectedICD continuously scans for ICD anomalies across six categories:
 
 | Category | Severity | Example |
 |----------|----------|---------|
@@ -293,7 +293,7 @@ Each anomaly includes actionable remediation suggestions.
 
 ### Export Formats
 
-ConnectedFlow exports to multiple downstream tool formats:
+ConnectedICD exports to multiple downstream tool formats:
 
 | Format | Use Case | File Type |
 |--------|----------|-----------|

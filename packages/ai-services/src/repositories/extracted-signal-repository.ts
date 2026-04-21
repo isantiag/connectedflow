@@ -3,7 +3,7 @@
  */
 
 import { type Knex } from 'knex';
-import { BaseRepository } from '@connectedflow/core-services';
+import { BaseRepository } from '@connectedicd/core-services';
 
 export interface ExtractedSignalRow {
   [key: string]: unknown;

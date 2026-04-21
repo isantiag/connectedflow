@@ -1,5 +1,5 @@
 /**
- * REST API client for ConnectedFlow backend.
+ * REST API client for ConnectedICD backend.
  * Fetch-based with auth token injection, error normalization, and retry.
  */
 

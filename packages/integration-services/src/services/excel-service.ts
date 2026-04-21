@@ -1,9 +1,9 @@
 /**
- * Excel Round-Trip Service — template generation, export, and import for ConnectedFlow signals.
+ * Excel Round-Trip Service — template generation, export, and import for ConnectedICD signals.
  * Supports protocol-specific columns (ARINC 429, CAN, MIL-STD-1553, AFDX).
  */
 import ExcelJS from 'exceljs';
-import type { Signal, LogicalLayer, TransportLayer, PhysicalLayer } from '@connectedflow/shared-types';
+import type { Signal, LogicalLayer, TransportLayer, PhysicalLayer } from '@connectedicd/shared-types';
 
 const PROTOCOL_COLUMNS: Record<string, string[]> = {
   arinc429: ['Label (Octal)', 'SDI', 'SSM', 'Encoding (BNR/BCD/Discrete)', 'Bit Position', 'Bit Length', 'Scale Factor', 'Range Min', 'Range Max'],
@@ -20,7 +20,7 @@ export class ExcelService {
   /** Generate a blank Excel template with protocol-specific columns */
   async generateTemplate(protocol: string, projectName?: string): Promise<Buffer> {
     const wb = new ExcelJS.Workbook();
-    wb.creator = 'ConnectedFlow';
+    wb.creator = 'ConnectedICD';
     wb.created = new Date();
 
     const ws = wb.addWorksheet(`${protocol.toUpperCase()} Signals`);
@@ -57,13 +57,13 @@ export class ExcelService {
 
     // Instructions sheet
     const instrWs = wb.addWorksheet('Instructions');
-    instrWs.addRow(['ConnectedFlow — Signal Import Template']);
+    instrWs.addRow(['ConnectedICD — Signal Import Template']);
     instrWs.addRow([`Protocol: ${protocol.toUpperCase()}`]);
     instrWs.addRow([`Project: ${projectName ?? 'N/A'}`]);
     instrWs.addRow(['']);
     instrWs.addRow(['Fill in the signals on the first sheet. The example row (italic) can be deleted.']);
     instrWs.addRow(['Required fields: Signal Name, Source System, Destination System, Data Type']);
-    instrWs.addRow(['Import via ConnectedFlow → Signals → Import → Upload Excel']);
+    instrWs.addRow(['Import via ConnectedICD → Signals → Import → Upload Excel']);
 
     return Buffer.from(await wb.xlsx.writeBuffer());
   }
@@ -71,7 +71,7 @@ export class ExcelService {
   /** Export signals to Excel with formatting */
   async exportSignals(signals: any[], protocol?: string): Promise<Buffer> {
     const wb = new ExcelJS.Workbook();
-    wb.creator = 'ConnectedFlow';
+    wb.creator = 'ConnectedICD';
 
     // Group by protocol/bus if no filter
     const groups = new Map<string, any[]>();

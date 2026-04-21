@@ -2,7 +2,7 @@
  * Excel Round-Trip REST routes — template generation, export, and import.
  */
 import type { FastifyInstance } from 'fastify';
-import { ExcelService } from '@connectedflow/integration-services/src/services/excel-service.js';
+import { ExcelService } from '@connectedicd/integration-services/src/services/excel-service.js';
 
 const excel = new ExcelService();
 
@@ -16,7 +16,7 @@ export async function excelRoutes(app: FastifyInstance) {
       const projectName = request.query.projectName;
       const buffer = await excel.generateTemplate(protocol, projectName);
       reply.header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      reply.header('Content-Disposition', `attachment; filename="connectedflow-template-${protocol}.xlsx"`);
+      reply.header('Content-Disposition', `attachment; filename="connectedicd-template-${protocol}.xlsx"`);
       return reply.send(buffer);
     }
   );
@@ -30,7 +30,7 @@ export async function excelRoutes(app: FastifyInstance) {
       const signals: any[] = []; // await signalService.querySignals({ projectId: request.query.projectId });
       const buffer = await excel.exportSignals(signals);
       reply.header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      reply.header('Content-Disposition', 'attachment; filename="connectedflow-signals.xlsx"');
+      reply.header('Content-Disposition', 'attachment; filename="connectedicd-signals.xlsx"');
       return reply.send(buffer);
     }
   );

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { SignalId, TraceLinkId } from '@connectedflow/shared-types';
+import type { SignalId, TraceLinkId } from '@connectedicd/shared-types';
 import {
   TraceabilityService,
   type TraceLinkDb,

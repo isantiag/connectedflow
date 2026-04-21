@@ -12,7 +12,7 @@ import type {
   AuditEntryRow,
   AuditEntryQueryFilter,
 } from '../repositories/audit-entry-repository.js';
-import type { UserId, AuditEntryId } from '@connectedflow/shared-types';
+import type { UserId, AuditEntryId } from '@connectedicd/shared-types';
 
 // ---------------------------------------------------------------------------
 // In-memory fake

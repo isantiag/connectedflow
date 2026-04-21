@@ -1,4 +1,4 @@
-// @connectedflow/core-services
+// @connectedicd/core-services
 // Signal Management, Protocol Validation, Baseline & Versioning, Workflow, Audit services.
 
 export * from './db/index.js';

@@ -20,9 +20,9 @@ import type {
   ByteOrder,
   Pagination,
   PaginatedResult,
-} from '@connectedflow/shared-types';
-import type { ProtocolAttrs } from '@connectedflow/shared-types';
-import type { ValidationResult } from '@connectedflow/shared-types';
+} from '@connectedicd/shared-types';
+import type { ProtocolAttrs } from '@connectedicd/shared-types';
+import type { ValidationResult } from '@connectedicd/shared-types';
 import { ConnectionManager } from '../db/connection.js';
 import {
   SignalRepository,
@@ -192,8 +192,8 @@ function toTransportDomain(row: TransportLayerRow): TransportLayer {
   return {
     id: row.id,
     signalId: row.signal_id as SignalId,
-    protocolId: row.protocol_id as import('@connectedflow/shared-types').ProtocolId,
-    busId: row.bus_id as import('@connectedflow/shared-types').BusId,
+    protocolId: row.protocol_id as import('@connectedicd/shared-types').ProtocolId,
+    busId: row.bus_id as import('@connectedicd/shared-types').BusId,
     protocolAttrs: row.protocol_attrs as ProtocolAttrs | Record<string, unknown>,
     bitOffset: row.bit_offset,
     bitLength: row.bit_length,
@@ -208,9 +208,9 @@ function toPhysicalDomain(row: PhysicalLayerRow): PhysicalLayer {
   return {
     id: row.id,
     signalId: row.signal_id as SignalId,
-    connectorId: row.connector_id as import('@connectedflow/shared-types').ConnectorId,
+    connectorId: row.connector_id as import('@connectedicd/shared-types').ConnectorId,
     pinNumber: row.pin_number,
-    cableBundleId: row.cable_bundle_id as import('@connectedflow/shared-types').CableBundleId,
+    cableBundleId: row.cable_bundle_id as import('@connectedicd/shared-types').CableBundleId,
     wireGauge: row.wire_gauge,
     wireColor: row.wire_color,
     wireType: row.wire_type,
@@ -626,8 +626,8 @@ export class SignalService {
         functionalCategory: (flat['logical.functionalCategory'] as string) ?? '',
       },
       transport: {
-        protocolId: (flat['transport.protocolId'] as import('@connectedflow/shared-types').ProtocolId) ?? ('' as import('@connectedflow/shared-types').ProtocolId),
-        busId: (flat['transport.busId'] as import('@connectedflow/shared-types').BusId) ?? ('' as import('@connectedflow/shared-types').BusId),
+        protocolId: (flat['transport.protocolId'] as import('@connectedicd/shared-types').ProtocolId) ?? ('' as import('@connectedicd/shared-types').ProtocolId),
+        busId: (flat['transport.busId'] as import('@connectedicd/shared-types').BusId) ?? ('' as import('@connectedicd/shared-types').BusId),
         protocolAttrs: (flat['transport.protocolAttrs'] as Record<string, unknown>) ?? {},
         bitOffset: (flat['transport.bitOffset'] as number) ?? 0,
         bitLength: (flat['transport.bitLength'] as number) ?? 0,
@@ -637,9 +637,9 @@ export class SignalService {
         byteOrder: (flat['transport.byteOrder'] as ByteOrder) ?? 'big_endian',
       },
       physical: {
-        connectorId: (flat['physical.connectorId'] as import('@connectedflow/shared-types').ConnectorId) ?? ('' as import('@connectedflow/shared-types').ConnectorId),
+        connectorId: (flat['physical.connectorId'] as import('@connectedicd/shared-types').ConnectorId) ?? ('' as import('@connectedicd/shared-types').ConnectorId),
         pinNumber: (flat['physical.pinNumber'] as string) ?? '',
-        cableBundleId: (flat['physical.cableBundleId'] as import('@connectedflow/shared-types').CableBundleId) ?? ('' as import('@connectedflow/shared-types').CableBundleId),
+        cableBundleId: (flat['physical.cableBundleId'] as import('@connectedicd/shared-types').CableBundleId) ?? ('' as import('@connectedicd/shared-types').CableBundleId),
         wireGauge: (flat['physical.wireGauge'] as string) ?? '',
         wireColor: (flat['physical.wireColor'] as string) ?? '',
         wireType: (flat['physical.wireType'] as string) ?? '',

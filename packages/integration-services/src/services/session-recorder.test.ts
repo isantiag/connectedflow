@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { AdapterId, SessionId, SignalId } from '@connectedflow/shared-types';
+import type { AdapterId, SessionId, SignalId } from '@connectedicd/shared-types';
 import {
   SessionRecorder,
   type SessionRecorderDb,

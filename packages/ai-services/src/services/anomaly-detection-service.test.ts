@@ -14,7 +14,7 @@ import type {
   LogicalLayer,
   TransportLayer,
   PhysicalLayer,
-} from '@connectedflow/shared-types';
+} from '@connectedicd/shared-types';
 
 // ---------------------------------------------------------------------------
 // Helpers — build minimal valid signal structures

@@ -1,4 +1,4 @@
-import type { AdapterId } from '@connectedflow/shared-types';
+import type { AdapterId } from '@connectedicd/shared-types';
 
 export type AdapterStatus = 'available' | 'connected' | 'disconnected' | 'error';
 

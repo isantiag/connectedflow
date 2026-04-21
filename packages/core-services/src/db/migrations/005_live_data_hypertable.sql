@@ -1,7 +1,7 @@
 -- 005_live_data_hypertable.sql
 -- TimescaleDB hypertable for live parameter readings.
 -- NOTE: This migration must be run against the TimescaleDB instance
--- (connectedflow_timeseries on port 5433), NOT the main PostgreSQL instance.
+-- (connectedicd_timeseries on port 5433), NOT the main PostgreSQL instance.
 
 CREATE EXTENSION IF NOT EXISTS timescaledb;
 

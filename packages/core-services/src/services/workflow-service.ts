@@ -13,7 +13,7 @@ import type {
   Pagination,
   PaginatedResult,
   Criticality,
-} from '@connectedflow/shared-types';
+} from '@connectedicd/shared-types';
 import type {
   ChangeRequestRepository,
   ChangeRequestRow,

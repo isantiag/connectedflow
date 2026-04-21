@@ -10,7 +10,7 @@
  * - signal_length: 1–64
  */
 
-import type { ValidationResult, ValidationError } from '@connectedflow/shared-types';
+import type { ValidationResult, ValidationError } from '@connectedicd/shared-types';
 import type { ProtocolPlugin, JSONSchema, MigrationResult } from './protocol-plugin.js';
 
 const VALID_ID_FORMATS = ['standard_11bit', 'extended_29bit'];

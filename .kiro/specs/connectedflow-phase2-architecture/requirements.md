@@ -1,8 +1,8 @@
-# Requirements Document — ConnectedFlow Phase 2: Architecture Management & Trade Studies
+# Requirements Document — ConnectedICD Phase 2: Architecture Management & Trade Studies
 
 ## Introduction
 
-ConnectedFlow Phase 2 extends the existing ICD management platform (Phase 1) with architecture-level capabilities for aerospace systems integration. Phase 1 provides signal CRUD, protocol validation, bus loading analysis, baselines, RBAC, wiring diagram rendering, AI document parsing, and live data monitoring. Phase 2 adds multi-project management, a connector parts database, enhanced bus loading and sizing analysis, power budget and electrical load analysis (ELA), mass properties estimation, cost estimation, architecture comparison with AI-driven trade studies, and aerospace-grade wiring diagram rendering with professional drawing standards.
+ConnectedICD Phase 2 extends the existing ICD management platform (Phase 1) with architecture-level capabilities for aerospace systems integration. Phase 1 provides signal CRUD, protocol validation, bus loading analysis, baselines, RBAC, wiring diagram rendering, AI document parsing, and live data monitoring. Phase 2 adds multi-project management, a connector parts database, enhanced bus loading and sizing analysis, power budget and electrical load analysis (ELA), mass properties estimation, cost estimation, architecture comparison with AI-driven trade studies, and aerospace-grade wiring diagram rendering with professional drawing standards.
 
 The primary use case: an engineer manages aircraft configuration WD-001 (1 AHRS + 2 IRS) and creates variant WD-002 (2 AHRS + 1 IRS), then compares both configurations side-by-side across weight, cost, bus loading, and power budget dimensions, using AI analysis to determine the optimal architecture for the certification basis.
 

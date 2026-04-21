@@ -11,13 +11,13 @@
  *   - Timing mismatch: logical refresh rate exceeds transport timing capability
  */
 
-import { CrossLayerValidator } from '@connectedflow/core-services';
+import { CrossLayerValidator } from '@connectedicd/core-services';
 import type {
   Signal,
   SignalId,
   AnomalyId,
   ValidationError,
-} from '@connectedflow/shared-types';
+} from '@connectedicd/shared-types';
 
 // ---------------------------------------------------------------------------
 // Types

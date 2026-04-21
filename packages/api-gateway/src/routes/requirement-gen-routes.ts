@@ -2,8 +2,8 @@
  * Requirement Generation REST routes.
  */
 import type { FastifyInstance } from 'fastify';
-import { RequirementGeneratorService } from '@connectedflow/core-services/src/services/requirement-generator-service.js';
-import { ConnectionManager } from '@connectedflow/core-services/src/db/connection.js';
+import { RequirementGeneratorService } from '@connectedicd/core-services/src/services/requirement-generator-service.js';
+import { ConnectionManager } from '@connectedicd/core-services/src/db/connection.js';
 
 export async function requirementGenRoutes(app: FastifyInstance) {
   const db = ConnectionManager.getInstance().getConnection();
@@ -19,7 +19,7 @@ export async function requirementGenRoutes(app: FastifyInstance) {
     const reqs = await gen.generateFromSignals(request.query.projectId);
     const xml = gen.generateReqIF(reqs);
     reply.header('Content-Type', 'application/xml');
-    reply.header('Content-Disposition', 'attachment; filename="connectedflow-requirements.reqif"');
+    reply.header('Content-Disposition', 'attachment; filename="connectedicd-requirements.reqif"');
     return reply.send(xml);
   });
 

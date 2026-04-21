@@ -10,7 +10,7 @@
  */
 
 import type { Knex } from 'knex';
-import type { BusId } from '@connectedflow/shared-types';
+import type { BusId } from '@connectedicd/shared-types';
 
 /** Per-signal bandwidth contribution detail. */
 export interface SignalBandwidthContribution {

@@ -1,5 +1,5 @@
-// @connectedflow/shared-types
-// Core shared types and interfaces for the ConnectedFlow platform.
+// @connectedicd/shared-types
+// Core shared types and interfaces for the ConnectedICD platform.
 
 export * from './ids.js';
 export * from './common.js';

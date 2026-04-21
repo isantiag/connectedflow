@@ -9,7 +9,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SignalService, type CreateSignalInput, type SignalPatch, type SignalFilter, type FieldMapping } from './signal-service.js';
 import { ConcurrentEditError, suggestMerge } from './concurrent-edit-error.js';
 import type { ConnectionManager } from '../db/connection.js';
-import type { Pagination, SignalId, ProjectId, UserId, ProtocolId, BusId, ConnectorId, CableBundleId } from '@connectedflow/shared-types';
+import type { Pagination, SignalId, ProjectId, UserId, ProtocolId, BusId, ConnectorId, CableBundleId } from '@connectedicd/shared-types';
 
 // ---------------------------------------------------------------------------
 // Helpers — build a fake Knex that records operations

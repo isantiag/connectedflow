@@ -1,4 +1,4 @@
-import type { AdapterId, SessionId } from '@connectedflow/shared-types';
+import type { AdapterId, SessionId } from '@connectedicd/shared-types';
 import type { IcdSignalDefinition } from './live-data-monitor.js';
 
 // ---------------------------------------------------------------------------

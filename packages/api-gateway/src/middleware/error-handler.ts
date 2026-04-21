@@ -4,7 +4,7 @@
  */
 
 import type { FastifyError, FastifyReply, FastifyRequest } from 'fastify';
-import type { ErrorResponse } from '@connectedflow/shared-types';
+import type { ErrorResponse } from '@connectedicd/shared-types';
 
 /**
  * Map known error names to HTTP status codes and error codes.

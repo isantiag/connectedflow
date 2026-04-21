@@ -10,7 +10,7 @@
  * - minor_frame_rate_hz: positive number
  */
 
-import type { ValidationResult, ValidationError } from '@connectedflow/shared-types';
+import type { ValidationResult, ValidationError } from '@connectedicd/shared-types';
 import type { ProtocolPlugin, JSONSchema, MigrationResult } from './protocol-plugin.js';
 
 const VALID_DIRECTIONS = ['RT_to_BC', 'BC_to_RT', 'RT_to_RT'];

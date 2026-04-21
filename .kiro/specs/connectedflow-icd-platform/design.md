@@ -1,8 +1,8 @@
-# ConnectedFlow — AI-Driven ICD Management Platform: Technical Design
+# ConnectedICD — AI-Driven ICD Management Platform: Technical Design
 
 ## Overview
 
-ConnectedFlow is an AI-native Interface Control Document (ICD) management platform designed for aerospace systems integration. It unifies all three ICD layers — logical, transport, and physical — into a single normalized database, replacing the fragmented toolchains (typically 2–4 tools bridged by Excel) that dominate the industry today.
+ConnectedICD is an AI-native Interface Control Document (ICD) management platform designed for aerospace systems integration. It unifies all three ICD layers — logical, transport, and physical — into a single normalized database, replacing the fragmented toolchains (typically 2–4 tools bridged by Excel) that dominate the industry today.
 
 The platform targets eVTOL, Part 23, and Part 25 aircraft programs and provides:
 
@@ -108,18 +108,18 @@ graph TB
 ```mermaid
 graph LR
     subgraph K8s["Kubernetes Cluster"]
-        subgraph NS1["connectedflow-core"]
+        subgraph NS1["connectedicd-core"]
             APIGateway["API Gateway Pod"]
             CorePods["Core Service Pods"]
             AIPods["AI Service Pods (TypeScript)"]
             PythonAIPods["AI Service Pods (Python)"]
         end
-        subgraph NS2["connectedflow-data"]
+        subgraph NS2["connectedicd-data"]
             PGPod["PostgreSQL StatefulSet"]
             TSPod["TimescaleDB StatefulSet"]
             RedisPod["Redis StatefulSet"]
         end
-        subgraph NS3["connectedflow-integration"]
+        subgraph NS3["connectedicd-integration"]
             HWPod["HW Adapter Pod (host network)"]
             SyncPod["Req Sync CronJob"]
         end
@@ -830,7 +830,7 @@ interface ErrorResponse {
 
 ### Dual Testing Approach
 
-ConnectedFlow requires both unit tests and property-based tests for comprehensive coverage.
+ConnectedICD requires both unit tests and property-based tests for comprehensive coverage.
 
 **Unit Tests** focus on:
 - Specific examples demonstrating correct behavior (e.g., parsing a known ARINC 429 label)
@@ -851,8 +851,8 @@ ConnectedFlow requires both unit tests and property-based tests for comprehensiv
 - **Library (Python)**: [Hypothesis](https://hypothesis.readthedocs.io/) for the Python AI service
 - **Minimum iterations**: 100 per property test
 - **Each property test must reference its design property with a tag comment:**
-  - TypeScript format: `// Feature: connectedflow-icd-platform, Property {number}: {property_text}`
-  - Python format: `# Feature: connectedflow-icd-platform, Property {number}: {property_text}`
+  - TypeScript format: `// Feature: connectedicd-icd-platform, Property {number}: {property_text}`
+  - Python format: `# Feature: connectedicd-icd-platform, Property {number}: {property_text}`
 - **Each correctness property must be implemented by a single property-based test**
 
 ### Frontend Testing

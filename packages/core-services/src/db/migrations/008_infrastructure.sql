@@ -1,4 +1,4 @@
--- ConnectedFlow infrastructure tables (same pattern as AssureFlow)
+-- ConnectedICD infrastructure tables (same pattern as AssureFlow)
 
 -- Data-level access control
 CREATE TABLE IF NOT EXISTS user_scope (
