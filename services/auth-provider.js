@@ -13,7 +13,7 @@ class EmailPasswordProvider {
     if (!this.jwtSecret) console.warn('⚠️  WARNING: JWT_SECRET not set. Auth tokens will be insecure. Set JWT_SECRET in .env');
     if (!this.jwtSecret) this.jwtSecret = require('crypto').randomBytes(32).toString('hex');
     this.jwtExpiresIn = config.jwtExpiresIn || '8h';
-    this.localMode = !(config.jwtSecret || process.env.JWT_SECRET);
+    this.localMode = process.env.DEV_AUTO_LOGIN === 'true';
     this.loginAttempts = new Map();
   }
 

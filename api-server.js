@@ -7,12 +7,17 @@ try { require('dotenv').config(); } catch { /* dotenv optional */ }
 const Fastify = require('fastify');
 const cors = require('@fastify/cors');
 const knex = require('knex');
+const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 
 const PORT = process.env.PORT || 4001;
 const DB_URL = process.env.DATABASE_URL || 'postgres://connectedflow:connectedflow_dev@localhost:5434/connectedflow';
 const schemas = require('./packages/schemas/src/index.js');
 
 const db = knex({ client: 'pg', connection: DB_URL, pool: { min: 1, max: 5 } });
+
+// Sanitize filenames for Content-Disposition headers (§9.4)
+function sanitizeFilename(name) { return (name || "export").replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 100); }
 
 // Zod validation helper — standard error envelope
 function validate(schema, data) {
@@ -27,6 +32,9 @@ function validate(schema, data) {
 async function start() {
   const app = Fastify();
   await app.register(cors, { origin: true });
+
+  // §11 audit: limit request body size to 10MB
+  app.addContentTypeParser('application/json', { bodyLimit: 10 * 1024 * 1024 }, app.getDefaultJsonParser('remove', 'remove'));
 
   app.get('/health', async () => ({ status: 'ok', db: 'connected' }));
 
@@ -78,7 +86,7 @@ async function start() {
         action: req.method.toLowerCase(),
         before_state: null,
         after_state: { status: reply.statusCode },
-      }).catch(() => {});
+      });
     }
   });
 
@@ -231,8 +239,8 @@ async function start() {
   app.post('/api/signals', async (req, reply) => {
     const b = req.body;
     const [sig] = await db('signal').insert({ name: b.name, project_id: b.projectId, criticality: b.criticality || 'major', status: b.status || 'draft' }).returning('*');
-    if (b.logical) await db('logical_layer').insert({ signal_id: sig.id, source_system: b.logical.source_system || '', dest_system: b.logical.dest_system || '', data_type: b.logical.data_type || '', units: b.logical.units || '', description: '', refresh_rate_hz: b.logical.refresh_rate_hz || 0, functional_category: '' }).catch(() => {});
-    if (b.transport) await db('transport_layer').insert({ signal_id: sig.id, protocol: b.transport.protocol || '' }).catch(() => {});
+    if (b.logical) await db('logical_layer').insert({ signal_id: sig.id, source_system: b.logical.source_system || '', dest_system: b.logical.dest_system || '', data_type: b.logical.data_type || '', units: b.logical.units || '', description: '', refresh_rate_hz: b.logical.refresh_rate_hz || 0, functional_category: '' });
+    if (b.transport) await db('transport_layer').insert({ signal_id: sig.id, protocol: b.transport.protocol || '' });
     reply.status(201); return sig;
   });
 
@@ -1115,7 +1123,7 @@ ${sheetsText}`;
 
     const analysisType = req.body.type || 'general';
     const prompts = {
-      general: `Analyze this avionics ICD architecture for the "${project.name}" (${project.aircraft_type}) project. Identify strengths, weaknesses, and recommendations.\n\nSystems:\n${sysNames}\n\nConnections:\n${connDetails}`,
+      general: `Analyze this avionics ICD architecture for the "${sanitizeFilename(project.name)}" (${project.aircraft_type}) project. Identify strengths, weaknesses, and recommendations.\n\nSystems:\n${sysNames}\n\nConnections:\n${connDetails}`,
       bus_loading: `Analyze the bus loading and bandwidth utilization for this avionics architecture. Flag any buses that may be overloaded.\n\nConnections:\n${connDetails}`,
       safety: `Perform a preliminary safety assessment of this ICD architecture. Identify single points of failure, missing redundancy, and criticality concerns per ARP 4761.\n\nSystems:\n${sysNames}\n\nConnections:\n${connDetails}`,
       compliance: `Check this ICD architecture for compliance with ARINC 429, ARINC 825, and DO-178C/DO-254 considerations. Flag any non-standard configurations.\n\nSystems:\n${sysNames}\n\nConnections:\n${connDetails}`,
@@ -1229,7 +1237,7 @@ ${sheetsText}`;
     const systems = await db('system').where('project_id', projectId).orderBy('name');
 
     let m = '';
-    m += `%% ConnectedICD Simulink Export — ${project.name}\n`;
+    m += `%% ConnectedICD Simulink Export — ${sanitizeFilename(project.name)}\n`;
     m += `%% Generated: ${new Date().toISOString()}\n`;
     m += `%% This script creates Simulink.Bus objects and signal definitions\n`;
     m += `%% Run in MATLAB before opening the model\n\n`;
@@ -1300,7 +1308,7 @@ ${sheetsText}`;
     m += `disp('ConnectedICD bus definitions loaded successfully.');\n`;
 
     reply.header('Content-Type', 'text/plain');
-    reply.header('Content-Disposition', `attachment; filename="${project.name}_Simulink.m"`);
+    reply.header('Content-Disposition', `attachment; filename="${sanitizeFilename(project.name)}_Simulink.m"`);
     return reply.send(m);
   });
 
@@ -1372,7 +1380,7 @@ ${sheetsText}`;
     }
 
     reply.header('Content-Type', 'application/octet-stream');
-    reply.header('Content-Disposition', `attachment; filename="${project.name}_CAN.dbc"`);
+    reply.header('Content-Disposition', `attachment; filename="${sanitizeFilename(project.name)}_CAN.dbc"`);
     return reply.send(dbc);
   });
 
@@ -1436,7 +1444,7 @@ ${sheetsText}`;
 
     const buf = Buffer.concat(chunks);
     reply.header('Content-Type', 'application/pdf');
-    reply.header('Content-Disposition', `attachment; filename="${project.name}_ICD.pdf"`);
+    reply.header('Content-Disposition', `attachment; filename="${sanitizeFilename(project.name)}_ICD.pdf"`);
     return reply.send(buf);
   });
 
@@ -1500,7 +1508,7 @@ ${sheetsText}`;
 
     const buf = await wb.xlsx.writeBuffer();
     reply.header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    reply.header('Content-Disposition', `attachment; filename="${project.name}_ICD.xlsx"`);
+    reply.header('Content-Disposition', `attachment; filename="${sanitizeFilename(project.name)}_ICD.xlsx"`);
     return reply.send(Buffer.from(buf));
   });
 
@@ -1701,9 +1709,9 @@ ${sheetsText}`;
     if (!b.name) return reply.status(400).send({ error: 'Name required' });
     const [tmpl] = await db('hw_icd_template').insert({ name: b.name, manufacturer: b.manufacturer || '', part_number: b.part_number || '', description: b.description || '', system_type: b.system_type || 'lru', ata_chapter: b.ata_chapter || '' }).returning('*');
     // Create template ports
-    if (b.ports) for (const p of b.ports) { await db('hw_icd_template_port').insert({ template_id: tmpl.id, name: p.name, protocol_id: p.protocol_id || null, direction: p.direction || 'tx', connector_label: p.connector_label || '' }).catch(() => {}); }
+    if (b.ports) for (const p of b.ports) { await db('hw_icd_template_port').insert({ template_id: tmpl.id, name: p.name, protocol_id: p.protocol_id || null, direction: p.direction || 'tx', connector_label: p.connector_label || '' }); }
     // Create template functions
-    if (b.functions) for (const f of b.functions) { await db('hw_icd_template_function').insert({ template_id: tmpl.id, name: f.name, criticality: f.criticality || 'major', dal: f.dal || '' }).catch(() => {}); }
+    if (b.functions) for (const f of b.functions) { await db('hw_icd_template_function').insert({ template_id: tmpl.id, name: f.name, criticality: f.criticality || 'major', dal: f.dal || '' }); }
     reply.status(201); return tmpl;
   });
 
@@ -1733,13 +1741,13 @@ ${sheetsText}`;
     // Copy ports
     const tmplPorts = await db('hw_icd_template_port').where('template_id', tmpl.id);
     for (const p of tmplPorts) {
-      await db('system_port').insert({ system_id: sys.id, name: p.name, protocol_id: p.protocol_id, direction: p.direction, connector_label: p.connector_label }).catch(() => {});
+      await db('system_port').insert({ system_id: sys.id, name: p.name, protocol_id: p.protocol_id, direction: p.direction, connector_label: p.connector_label });
     }
 
     // Copy functions
     const tmplFns = await db('hw_icd_template_function').where('template_id', tmpl.id);
     for (const f of tmplFns) {
-      await db('system_function').insert({ system_id: sys.id, name: f.name, criticality: f.criticality, dal: f.dal }).catch(() => {});
+      await db('system_function').insert({ system_id: sys.id, name: f.name, criticality: f.criticality, dal: f.dal });
     }
 
     reply.status(201);
@@ -1855,8 +1863,8 @@ ${sheetsText}`;
       const total = Math.max(defined, defined); // In real app, compare against expected
       artifacts.push({
         id: `SIGNAL_LIST-${project.name.replace(/\s+/g, '-')}`, projectId, toolSource: 'connectedflow',
-        artifactType: 'SIGNAL_LIST', title: `Signal List: ${project.name}`,
-        description: `Complete signal/parameter list for ${project.name}. ${defined} parameters defined.`,
+        artifactType: 'SIGNAL_LIST', title: `Signal List: ${sanitizeFilename(project.name)}`,
+        description: `Complete signal/parameter list for ${sanitizeFilename(project.name)}. ${defined} parameters defined.`,
         version: '1.0', programPhase: project.program_phase,
         applicableReviews: ['PDR', 'CDR'],
         status: defined > 0 ? 'draft' : 'not-started',
@@ -1889,7 +1897,7 @@ ${sheetsText}`;
       const totalCells = systems.length * (systems.length - 1);
       artifacts.push({
         id: `N2_MATRIX-${project.name.replace(/\s+/g, '-')}`, projectId, toolSource: 'connectedflow',
-        artifactType: 'N2_MATRIX', title: `N² Matrix: ${project.name}`,
+        artifactType: 'N2_MATRIX', title: `N² Matrix: ${sanitizeFilename(project.name)}`,
         description: `${systems.length} systems, ${filledCells}/${totalCells} interfaces defined.`,
         version: '1.0', programPhase: project.program_phase,
         applicableReviews: ['SRR', 'PDR'],
@@ -2067,7 +2075,7 @@ ${sheetsText}`;
     for (const part of parts) {
       const existing = await db('system').where({ name: part.name, project_id: projectId }).first();
       if (!existing) {
-        await db('system').insert({ name: part.name, description: part.description || '', project_id: projectId }).catch(() => {});
+        await db('system').insert({ name: part.name, description: part.description || '', project_id: projectId });
         imported.systems++;
       }
     }
@@ -2076,8 +2084,8 @@ ${sheetsText}`;
     for (const flow of flows) {
       const [sig] = await db('signal').insert({ name: flow.name || `${flow.source}-${flow.target}`, project_id: projectId, criticality: flow.criticality || 'major', status: 'draft' }).returning('*').catch(() => [null]);
       if (sig) {
-        await db('logical_layer').insert({ signal_id: sig.id, source_system: flow.source || '', dest_system: flow.target || '', data_type: flow.dataType || '', units: flow.units || '', description: flow.description || '', refresh_rate_hz: flow.refreshRate || 0, functional_category: '' }).catch(() => {});
-        if (flow.protocol) await db('transport_layer').insert({ signal_id: sig.id, protocol: flow.protocol }).catch(() => {});
+        await db('logical_layer').insert({ signal_id: sig.id, source_system: flow.source || '', dest_system: flow.target || '', data_type: flow.dataType || '', units: flow.units || '', description: flow.description || '', refresh_rate_hz: flow.refreshRate || 0, functional_category: '' });
+        if (flow.protocol) await db('transport_layer').insert({ signal_id: sig.id, protocol: flow.protocol });
         imported.signals++;
       }
     }
@@ -2087,7 +2095,7 @@ ${sheetsText}`;
       const src = await db('system').where({ name: conn.source, project_id: projectId }).first();
       const dst = await db('system').where({ name: conn.target, project_id: projectId }).first();
       if (src && dst) {
-        await db('connection').insert({ name: conn.name || `${conn.source}-${conn.target}`, source_system_id: src.id, dest_system_id: dst.id, project_id: projectId }).catch(() => {});
+        await db('connection').insert({ name: conn.name || `${conn.source}-${conn.target}`, source_system_id: src.id, dest_system_id: dst.id, project_id: projectId });
         imported.connections++;
       }
     }
@@ -2107,7 +2115,7 @@ ${sheetsText}`;
         await db('trace_link').where('id', existing.id).update({ requirement_text: r.text, link_status: 'synced', last_synced_at: db.fn.now() });
         results.updated++;
       } else if (r.signalId) {
-        await db('trace_link').insert({ signal_id: r.signalId, requirement_tool: r.tool || 'external', external_requirement_id: r.id, requirement_text: r.text, link_status: 'synced', direction: direction || 'bidirectional', last_synced_at: db.fn.now() }).catch(() => {});
+        await db('trace_link').insert({ signal_id: r.signalId, requirement_tool: r.tool || 'external', external_requirement_id: r.id, requirement_text: r.text, link_status: 'synced', direction: direction || 'bidirectional', last_synced_at: db.fn.now() });
         results.linked++;
       } else {
         results.created++;
@@ -2164,7 +2172,7 @@ ${sheetsText}`;
       after_state: { findingType: findingType || 'hazard', severity: severity || 'major', description, sourceArtifactId, sourceTool: sourceTool || 'safetynow' },
     });
     // Add a comment on the signal
-    await db('signal_comment').insert({ signal_id: signalId, user_id: 'safetynow-integration', content: `[SafetyNow ${findingType || 'hazard'}] ${severity || 'major'}: ${description}` }).catch(() => {});
+    await db('signal_comment').insert({ signal_id: signalId, user_id: 'safetynow-integration', content: `[SafetyNow ${findingType || 'hazard'}] ${severity || 'major'}: ${description}` });
     return { status: 'recorded', signalId, findingType: findingType || 'hazard' };
   });
 
