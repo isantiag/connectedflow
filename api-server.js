@@ -30,73 +30,27 @@ async function start() {
   app.get('/health', async () => ({ status: 'ok', db: 'connected' }));
 
   // ============================================================
-  // Auth & RBAC (DesignerMind/DesignFlow pattern)
+  // Auth & RBAC — AuthProvider interface (Foundation #2)
+  // Swap EmailPasswordProvider for SamlProvider/OidcProvider later.
   // ============================================================
 
-  const jwt = require('jsonwebtoken');
-  const bcrypt = require('bcryptjs');
-  const crypto = require('crypto');
-  const JWT_SECRET = process.env.JWT_SECRET || '';
-  const LOCAL_MODE = !JWT_SECRET;
-  const loginAttempts = new Map(); // username -> { count, lockedUntil }
+  const { EmailPasswordProvider, hasPermission } = require('./services/auth-provider');
+  const authProvider = new EmailPasswordProvider(db, {
+    jwtSecret: process.env.JWT_SECRET,
+    jwtExpiresIn: process.env.JWT_EXPIRES_IN || '8h',
+  });
+  const LOCAL_MODE = authProvider.localMode;
 
-  const PERMISSIONS = {
-    admin: ['view', 'create', 'edit', 'delete', 'evaluate', 'approve'],
-    editor: ['view', 'create', 'edit', 'evaluate'],
-    viewer: ['view'],
-  };
-
-  // Auth middleware
+  // Auth middleware — delegates to provider
   async function authenticate(req) {
-    const authHeader = req.headers.authorization || '';
-    const apiKey = req.headers['x-api-key'];
-
-    // 1. Local mode — auto-auth as admin if no header
-    if (LOCAL_MODE && !authHeader && !apiKey) {
-      const admin = await db('user').first();
-      if (admin) {
-        const ur = await db('user_role').where('user_id', admin.id).first();
-        const role = ur ? await db('role').where('id', ur.role_id).first() : null;
-        return { userId: admin.id, email: admin.email, displayName: admin.display_name, role: role?.name || 'admin', groups: JSON.parse(admin.groups || '[]') };
-      }
-    }
-
-    // 2. Bearer JWT
-    if (authHeader.startsWith('Bearer ')) {
-      const token = authHeader.slice(7);
-      try {
-        const payload = jwt.verify(token, JWT_SECRET || 'dev-secret');
-        return payload;
-      } catch { return null; }
-    }
-
-    // 3. API Key
-    if (apiKey) {
-      const hash = crypto.createHash('sha256').update(apiKey).digest('hex');
-      const key = await db('api_key').where({ key_hash: hash, revoked: false }).first();
-      if (key) {
-        const user = await db('user').where('id', key.user_id).first();
-        if (user) {
-          const ur = await db('user_role').where('user_id', user.id).first();
-          const r = ur ? await db('role').where('id', ur.role_id).first() : null;
-          return { userId: user.id, email: user.email, displayName: user.display_name, role: r?.name || 'viewer', groups: JSON.parse(user.groups || '[]') };
-        }
-      }
-    }
-
-    return null;
+    return authProvider.getUser(req);
   }
 
   function getSession(req) {
     return req._authUser || null;
   }
 
-  function hasPermission(session, resource, action) {
-    if (!session) return LOCAL_MODE; // In local mode, allow all
-    const perms = PERMISSIONS[session.role] || PERMISSIONS.viewer;
-    const actionMap = { read: 'view', create: 'create', update: 'edit', delete: 'delete' };
-    return perms.includes(actionMap[action] || action) || perms.includes('*');
-  }
+  // hasPermission — from auth-provider.js
 
   // Auth hook — runs before every request
   app.addHook('onRequest', async (req) => {
@@ -120,42 +74,9 @@ async function start() {
   // Login
   app.post('/api/auth/login', async (req, reply) => {
     const v = validate(schemas.LoginSchema, req.body); if (!v.ok) return reply.status(422).send(v.error);
-    const { email } = v.data;
-
-    // Rate limiting
-    const attempts = loginAttempts.get(email);
-    if (attempts && attempts.lockedUntil && Date.now() < attempts.lockedUntil) {
-      const mins = Math.ceil((attempts.lockedUntil - Date.now()) / 60000);
-      return reply.status(429).send({ error: { code: 'RATE_LIMITED', message: `Account locked. Try again in ${mins} minutes.` } });
-    }
-
-    const user = await db('user').where('email', email).first();
-    if (!user) return reply.status(401).send({ error: { code: 'AUTH_FAILED', message: 'Invalid credentials' } });
-
-    // Password check (skip in local mode if no password provided)
-    if (req.body.password) {
-      const valid = user.password_hash ? await bcrypt.compare(req.body.password, user.password_hash) : false;
-      if (!valid) {
-        const a = loginAttempts.get(email) || { count: 0 };
-        a.count++;
-        if (a.count >= 5) a.lockedUntil = Date.now() + 15 * 60 * 1000;
-        loginAttempts.set(email, a);
-        return reply.status(401).send({ error: { code: 'AUTH_FAILED', message: 'Invalid credentials' } });
-      }
-    }
-
-    // Clear failed attempts
-    loginAttempts.delete(email);
-
-    const userRole = await db('user_role').where('user_id', user.id).first();
-    const role = userRole ? await db('role').where('id', userRole.role_id).first() : null;
-    const scopes = await db('user_scope').where('user_id', user.id);
-
-    const payload = { userId: user.id, email: user.email, displayName: user.display_name, role: role?.name || 'viewer', groups: JSON.parse(user.groups || '[]'), projectIds: scopes.map(s => s.project_id).filter(Boolean) };
-    const token = jwt.sign(payload, JWT_SECRET || 'dev-secret', { expiresIn: '8h' });
-
-    await db('user').where('id', user.id).update({ last_login: db.fn.now(), failed_login_attempts: 0 });
-    return { token, user: payload };
+    const result = await authProvider.login(v.data.email, v.data.password);
+    if (result.error) return reply.status(result.status || 401).send({ error: { code: 'AUTH_FAILED', message: result.error } });
+    return result;
   });
 
   app.get('/api/auth/me', async (req, reply) => {
