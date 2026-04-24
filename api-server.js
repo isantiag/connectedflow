@@ -29,6 +29,16 @@ async function start() {
 
   app.get('/health', async () => ({ status: 'ok', db: 'connected' }));
 
+  app.get('/ready', async (req, reply) => {
+    try {
+      await db.raw('SELECT 1');
+      return { ready: true, db: 'connected', version: '1.0.0', timestamp: new Date().toISOString() };
+    } catch {
+      reply.status(503);
+      return { ready: false, db: 'disconnected' };
+    }
+  });
+
   // ============================================================
   // Auth & RBAC — AuthProvider interface (Foundation #2)
   // Swap EmailPasswordProvider for SamlProvider/OidcProvider later.
