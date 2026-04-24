@@ -1,9 +1,7 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import { motion } from 'framer-motion';
 import { ArrowLeft, Upload, FileSpreadsheet, Check } from 'lucide-react';
-import { Sidebar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,7 +31,7 @@ export default function SignalImportPage() {
     if (!file) return;
     setImporting(true);
     try {
-      const res = await api.post<{ mappings: FieldMapping[] }>('/signals/import/preview', { fileName: file.name });
+      const res = await api.post<{ mappings: FieldMapping[] }>('signals/import/preview', { fileName: file.name });
       setMappings(res.mappings);
     } catch {
       // handle error
@@ -43,16 +41,11 @@ export default function SignalImportPage() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      <Sidebar />
-      <div className="flex flex-1 flex-col overflow-hidden">
+    <div className="flex flex-1 flex-col overflow-hidden">
+
         <Header />
         <main className="flex-1 overflow-y-auto p-6">
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
+          <div>
             <div className="flex items-center gap-3">
               <Button variant="ghost" size="icon" asChild>
                 <a href="/signals"><ArrowLeft className="h-4 w-4" /></a>
@@ -130,9 +123,9 @@ export default function SignalImportPage() {
                 </CardContent>
               </Card>
             </div>
-          </motion.div>
+          </div>
         </main>
       </div>
-    </div>
+
   );
 }

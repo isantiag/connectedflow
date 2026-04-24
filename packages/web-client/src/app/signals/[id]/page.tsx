@@ -2,9 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { motion } from 'framer-motion';
 import { ArrowLeft, AlertTriangle, CheckCircle2 } from 'lucide-react';
-import { Sidebar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -50,16 +48,11 @@ export default function SignalDetailPage() {
   }, [params.id]);
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      <Sidebar />
-      <div className="flex flex-1 flex-col overflow-hidden">
+    <div className="flex flex-1 flex-col overflow-hidden">
+
         <Header />
         <main className="flex-1 overflow-y-auto p-6">
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
+          <div>
             <div className="flex items-center gap-3">
               <Button variant="ghost" size="icon" asChild>
                 <a href="/signals"><ArrowLeft className="h-4 w-4" /></a>
@@ -168,9 +161,9 @@ export default function SignalDetailPage() {
                 )}
               </div>
             </div>
-          </motion.div>
+          </div>
         </main>
       </div>
-    </div>
+
   );
 }

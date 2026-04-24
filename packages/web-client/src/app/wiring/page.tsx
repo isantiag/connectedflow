@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
 import { Download, Maximize2 } from 'lucide-react';
 import {
   ReactFlow,
@@ -14,7 +13,6 @@ import {
   type Edge,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Sidebar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
 import { Button } from '@/components/ui/button';
 import { ConnectorNode } from '@/components/wiring/connector-node';
@@ -48,7 +46,7 @@ export default function WiringPage() {
   }, [setNodes, setEdges]);
 
   const handleExportSVG = useCallback(async () => {
-    const blob = await api.get<Blob>('/wiring/export/svg');
+    const blob = await api.get<Blob>('wiring/export/svg');
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -58,17 +56,11 @@ export default function WiringPage() {
   }, []);
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      <Sidebar />
-      <div className="flex flex-1 flex-col overflow-hidden">
+    <div className="flex flex-1 flex-col overflow-hidden">
+
         <Header />
         <main className="relative flex-1">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.3 }}
-            className="h-full"
-          >
+          <div>
             {/* Toolbar */}
             <div className="absolute left-4 top-4 z-10 flex gap-2">
               <Button size="sm" variant="outline" onClick={handleExportSVG}>
@@ -101,9 +93,9 @@ export default function WiringPage() {
                 />
               </ReactFlow>
             )}
-          </motion.div>
+          </div>
         </main>
       </div>
-    </div>
+
   );
 }

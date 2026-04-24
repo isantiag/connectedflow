@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { motion } from 'framer-motion';
 import {
   Activity,
   Box,
@@ -21,6 +20,8 @@ import { Button } from '@/components/ui/button';
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/' },
   { icon: Zap, label: 'Signals', href: '/signals' },
+  { icon: Box, label: 'Systems', href: '/systems' },
+  { icon: Box, label: 'HW Templates', href: '/hw-templates' },
   { icon: Box, label: 'N² Matrix', href: '/n2-matrix' },
   { icon: Radio, label: 'Live Data', href: '/live' },
   { icon: Box, label: 'Wiring', href: '/wiring' },
@@ -38,10 +39,11 @@ export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
-    <motion.aside
-      animate={{ width: collapsed ? 56 : 220 }}
-      transition={{ duration: 0.2 }}
-      className="flex h-full flex-col border-r bg-card"
+    <aside
+      className={cn(
+        'flex h-full shrink-0 flex-col border-r bg-card transition-all duration-200',
+        collapsed ? 'w-14' : 'w-[220px]'
+      )}
     >
       <div className="flex h-14 items-center justify-between px-3">
         {!collapsed && (
@@ -80,6 +82,6 @@ export function Sidebar() {
           </a>
         ))}
       </nav>
-    </motion.aside>
+    </aside>
   );
 }

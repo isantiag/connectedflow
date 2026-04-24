@@ -1,9 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
 import { Upload, FileText, CheckCircle2, XCircle, Clock, Eye } from 'lucide-react';
-import { Sidebar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -42,14 +40,14 @@ export default function DocumentsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get<{ data: ParseJob[] }>('/parse-jobs')
+    api.get<{ data: ParseJob[] }>('parse-jobs')
       .then((res) => setJobs(res.data))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
   const handleUpload = useCallback(async (file: File) => {
-    const job = await api.post<ParseJob>('/parse-jobs', { fileName: file.name });
+    const job = await api.post<ParseJob>('parse-jobs', { fileName: file.name });
     setJobs((prev) => [job, ...prev]);
   }, []);
 
@@ -73,16 +71,11 @@ export default function DocumentsPage() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      <Sidebar />
-      <div className="flex flex-1 flex-col overflow-hidden">
+    <div className="flex flex-1 flex-col overflow-hidden">
+
         <Header />
         <main className="flex-1 overflow-y-auto p-6">
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
+          <div>
             <h1 className="text-2xl font-semibold tracking-tight">Documents</h1>
             <p className="mt-1 text-sm text-muted-foreground">
               Upload ICD documents for AI-powered signal extraction
@@ -199,9 +192,9 @@ export default function DocumentsPage() {
                 </CardContent>
               </Card>
             </div>
-          </motion.div>
+          </div>
         </main>
       </div>
-    </div>
+
   );
 }

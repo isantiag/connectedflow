@@ -1,79 +1,70 @@
 'use client';
 
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@radix-ui/react-dropdown-menu';
-import { Bell, LogOut, Moon, Sun, User } from 'lucide-react';
+import { Bell, Moon, Plus, Sun, X } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { Input } from '@/components/ui/input';
+import { useProject } from '@/lib/project-context';
+import { useAuth } from '@/lib/auth-context';
+import { api } from '@/lib/api-client';
+
+interface Project { id: string; name: string; aircraft_type: string; program_phase: string; }
 
 export function Header() {
   const [dark, setDark] = useState(false);
+  const { projects, currentProject, setProjectId, addProject } = useProject();
+  const { user, logout } = useAuth();
+  const [showNew, setShowNew] = useState(false);
+  const [form, setForm] = useState({ name: '', aircraft_type: '', certification_basis: '', program_phase: 'concept' });
 
-  function toggleTheme() {
-    setDark((prev) => {
-      const next = !prev;
-      document.documentElement.classList.toggle('dark', next);
-      return next;
-    });
-  }
+  const toggleTheme = () => { setDark(prev => { const next = !prev; document.documentElement.classList.toggle('dark', next); return next; }); };
+
+  const createProject = async () => {
+    if (!form.name.trim()) return;
+    try {
+      const proj = await api.post<Project>('projects', form);
+      addProject(proj);
+      setForm({ name: '', aircraft_type: '', certification_basis: '', program_phase: 'concept' });
+      setShowNew(false);
+    } catch (e: unknown) { alert(e instanceof Error ? e.message : 'Failed'); }
+  };
 
   return (
-    <header className="flex h-14 items-center justify-between border-b bg-card px-4">
-      <div className="text-sm text-muted-foreground">
-        {/* breadcrumb / search placeholder */}
-      </div>
-
-      <div className="flex items-center gap-1">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={toggleTheme}
-          aria-label="Toggle theme"
-        >
-          {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-        </Button>
-
-        <Button variant="ghost" size="icon" aria-label="Notifications">
-          <Bell className="h-4 w-4" />
-        </Button>
-
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="rounded-full"
-              aria-label="User menu"
-            >
-              <User className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            align="end"
-            className={cn(
-              'z-50 min-w-[160px] rounded-md border bg-card p-1 shadow-md',
-              'animate-in fade-in-0 zoom-in-95'
-            )}
-          >
-            <div className="px-2 py-1.5 text-xs text-muted-foreground">
-              user@connectedflow.io
+    <header className="border-b bg-card">
+      <div className="flex h-14 items-center justify-between px-4">
+        <div className="flex items-center gap-2">
+          <select value={currentProject?.id || ''} onChange={e => setProjectId(e.target.value)} className="text-sm font-medium border rounded px-2 py-1 bg-white max-w-[250px]">
+            {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+          <button onClick={() => setShowNew(!showNew)} className="text-xs text-primary hover:underline flex items-center gap-0.5">
+            <Plus className="h-3 w-3" /> New
+          </button>
+          {currentProject && <span className="text-xs text-muted-foreground">{currentProject.aircraft_type} · {currentProject.program_phase}</span>}
+        </div>
+        <div className="flex items-center gap-2">
+          {user && (
+            <div className="flex items-center gap-2 mr-2">
+              <span className="text-xs text-slate-600">{user.displayName}</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500">{user.role}</span>
             </div>
-            <DropdownMenuSeparator className="my-1 h-px bg-border" />
-            <DropdownMenuItem className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent">
-              <User className="h-3.5 w-3.5" /> Profile
-            </DropdownMenuItem>
-            <DropdownMenuItem className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent">
-              <LogOut className="h-3.5 w-3.5" /> Sign out
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+          )}
+          <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label="Toggle theme">{dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}</Button>
+          <Button variant="ghost" size="icon" aria-label="Notifications"><Bell className="h-4 w-4" /></Button>
+          <Button variant="ghost" size="sm" onClick={logout} className="text-xs text-slate-500">Logout</Button>
+        </div>
       </div>
+      {showNew && (
+        <div className="px-4 pb-3 flex items-center gap-2">
+          <Input placeholder="Project name *" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="h-8 text-sm w-48" />
+          <Input placeholder="Aircraft type" value={form.aircraft_type} onChange={e => setForm({ ...form, aircraft_type: e.target.value })} className="h-8 text-sm w-36" />
+          <Input placeholder="Cert. basis" value={form.certification_basis} onChange={e => setForm({ ...form, certification_basis: e.target.value })} className="h-8 text-sm w-36" />
+          <select value={form.program_phase} onChange={e => setForm({ ...form, program_phase: e.target.value })} className="text-sm border rounded px-2 py-1 h-8">
+            <option value="concept">Concept</option><option value="preliminary">Preliminary</option><option value="detailed">Detailed</option><option value="certification">Certification</option>
+          </select>
+          <Button size="sm" className="h-8" onClick={createProject}>Create</Button>
+          <button onClick={() => setShowNew(false)} className="text-slate-400 hover:text-slate-600"><X className="h-4 w-4" /></button>
+        </div>
+      )}
     </header>
   );
 }

@@ -1,97 +1,105 @@
 'use client';
 
 import { useState } from 'react';
+import { Brain, Send, Loader2 } from 'lucide-react';
+import { Header } from '@/components/layout/header';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { useProject } from '@/lib/project-context';
+import { api } from '@/lib/api-client';
 
-const ANALYSES = [
-  { id: 'throughput', label: 'Bus Throughput', icon: '📊', desc: 'Detect bottlenecks and overloaded buses', endpoint: '/api/ai/throughput' },
-  { id: 'routing', label: 'Routing Proposal', icon: '🔀', desc: 'Optimal signal routing between systems', endpoint: '/api/ai/routing' },
-  { id: 'trends', label: 'Trend Analysis', icon: '📈', desc: 'ICD evolution across baselines', endpoint: '/api/ai/trends' },
-  { id: 'constraints', label: 'Constraint Check', icon: '🔒', desc: 'Protocol limits, timing, naming', endpoint: '/api/ai/constraints' },
-  { id: 'architecture', label: 'Architecture', icon: '🏗️', desc: 'Coupling, redundancy, consolidation', endpoint: '/api/ai/architecture' },
-  { id: 'anomalies', label: 'Anomaly Detection', icon: '🔍', desc: 'Patterns rule-based checks miss', endpoint: '/api/ai/anomalies' },
+const ANALYSIS_TYPES = [
+  { id: 'general', label: 'General Architecture Review', desc: 'Strengths, weaknesses, recommendations' },
+  { id: 'bus_loading', label: 'Bus Loading Analysis', desc: 'Bandwidth utilization and overload risks' },
+  { id: 'safety', label: 'Safety Assessment', desc: 'Single points of failure, redundancy gaps (ARP 4761)' },
+  { id: 'compliance', label: 'Standards Compliance', desc: 'ARINC 429/825, DO-178C/DO-254 checks' },
 ];
 
-export default function AiAnalysisPage() {
-  const [active, setActive] = useState<string | null>(null);
-  const [result, setResult] = useState<any>(null);
+export default function AIAnalysisPage() {
+  const { currentProject } = useProject();
+  const [analysisResult, setAnalysisResult] = useState('');
+  const [analysisType, setAnalysisType] = useState('');
   const [loading, setLoading] = useState(false);
-  const [routingForm, setRoutingForm] = useState({ source: '', dest: '', requirements: '' });
+  const [chatMsg, setChatMsg] = useState('');
+  const [chatHistory, setChatHistory] = useState<{ role: string; text: string }[]>([]);
+  const [chatLoading, setChatLoading] = useState(false);
 
-  const run = async (id: string) => {
-    setActive(id); setResult(null); setLoading(true);
-    const analysis = ANALYSES.find(a => a.id === id)!;
+  const runAnalysis = async (type: string) => {
+    if (!currentProject) return;
+    setLoading(true); setAnalysisType(type); setAnalysisResult('');
     try {
-      const body = id === 'routing' ? { sourceSystem: routingForm.source, destSystem: routingForm.dest, dataRequirements: routingForm.requirements } : {};
-      const r = await fetch(analysis.endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-      setResult(await r.json());
-    } catch { setResult({ error: 'Analysis failed — is the API running?' }); }
-    setLoading(false);
+      const res = await api.post<{ analysis: string }>('ai/analyze', { projectId: currentProject.id, type });
+      setAnalysisResult(res.analysis);
+    } catch (e: unknown) {
+      setAnalysisResult(e instanceof Error ? e.message : 'Analysis failed');
+    } finally { setLoading(false); }
+  };
+
+  const sendChat = async () => {
+    if (!chatMsg.trim() || !currentProject) return;
+    const msg = chatMsg; setChatMsg('');
+    setChatHistory(h => [...h, { role: 'user', text: msg }]);
+    setChatLoading(true);
+    try {
+      const res = await api.post<{ response: string }>('ai/chat', { message: msg, projectId: currentProject.id });
+      setChatHistory(h => [...h, { role: 'assistant', text: res.response }]);
+    } catch {
+      setChatHistory(h => [...h, { role: 'assistant', text: 'Error: AI service unavailable' }]);
+    } finally { setChatLoading(false); }
   };
 
   return (
-    <div className="p-8 max-w-5xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">AI Analysis</h1>
-        <p className="text-sm text-slate-500 mt-1">Claude / Gemini powered insights for your ICD architecture.</p>
-      </div>
-
-      {/* Analysis cards */}
-      <div className="grid grid-cols-3 gap-3 mb-8">
-        {ANALYSES.map(a => (
-          <button key={a.id} onClick={() => a.id === 'routing' ? setActive('routing-form') : run(a.id)}
-            className={`p-4 rounded-xl border text-left transition-all ${active === a.id ? 'border-blue-400 bg-blue-50 shadow-sm' : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm'}`}>
-            <div className="text-2xl mb-2">{a.icon}</div>
-            <div className="text-sm font-semibold text-slate-800">{a.label}</div>
-            <div className="text-xs text-slate-500 mt-0.5">{a.desc}</div>
-          </button>
-        ))}
-      </div>
-
-      {/* Routing form */}
-      {active === 'routing-form' && (
-        <div className="mb-6 p-6 rounded-xl border border-slate-200 bg-white space-y-3">
-          <h3 className="text-sm font-semibold text-slate-900">Routing Proposal — Define the interface</h3>
-          <div className="grid grid-cols-2 gap-3">
-            <input value={routingForm.source} onChange={e => setRoutingForm(p => ({ ...p, source: e.target.value }))} placeholder="Source system (e.g., FCC)"
-              className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
-            <input value={routingForm.dest} onChange={e => setRoutingForm(p => ({ ...p, dest: e.target.value }))} placeholder="Destination system (e.g., ADC)"
-              className="px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
-          </div>
-          <input value={routingForm.requirements} onChange={e => setRoutingForm(p => ({ ...p, requirements: e.target.value }))} placeholder="Data requirements (e.g., airspeed, altitude at 50ms, safety-critical)"
-            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
-          <button onClick={() => run('routing')} className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700">Analyze Routing</button>
+    <div className="flex flex-1 flex-col overflow-hidden">
+      <Header />
+      <main className="flex-1 overflow-y-auto p-6">
+        <div className="flex items-center gap-3 mb-6">
+          <Brain className="h-6 w-6 text-primary" />
+          <h1 className="text-2xl font-semibold tracking-tight">AI Analysis</h1>
         </div>
-      )}
 
-      {/* Loading */}
-      {loading && (
-        <div className="flex items-center justify-center py-16">
-          <div className="text-center">
-            <div className="text-3xl animate-pulse mb-3">🤖</div>
-            <p className="text-sm text-slate-500">AI is analyzing your ICD data...</p>
-          </div>
-        </div>
-      )}
-
-      {/* Results */}
-      {result && !loading && (
-        <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-semibold text-slate-900">{ANALYSES.find(a => a.id === active)?.label} Results</h3>
-              <p className="text-xs text-slate-400">{result.provider} · {result.model}</p>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div>
+            <h2 className="text-sm font-semibold text-slate-800 mb-3">Automated Analysis</h2>
+            <div className="grid grid-cols-2 gap-2 mb-4">
+              {ANALYSIS_TYPES.map(t => (
+                <button key={t.id} onClick={() => runAnalysis(t.id)} disabled={loading}
+                  className="p-3 rounded-lg border bg-white hover:border-primary hover:shadow-sm transition-all text-left">
+                  <div className="text-sm font-medium">{t.label}</div>
+                  <div className="text-xs text-slate-500 mt-0.5">{t.desc}</div>
+                </button>
+              ))}
             </div>
-            <button onClick={() => { setResult(null); setActive(null); }} className="text-xs text-slate-400 hover:text-slate-600">✕ Close</button>
-          </div>
-          <div className="p-6">
-            {typeof result.analysis === 'object' ? (
-              <pre className="text-xs text-slate-700 whitespace-pre-wrap font-mono bg-slate-50 p-4 rounded-lg overflow-auto max-h-96">{JSON.stringify(result.analysis, null, 2)}</pre>
-            ) : (
-              <div className="text-sm text-slate-700 whitespace-pre-wrap">{String(result.analysis ?? result.error ?? 'No results')}</div>
+            {loading && <div className="flex items-center gap-2 text-sm text-muted-foreground p-4"><Loader2 className="h-4 w-4 animate-spin" /> Running analysis...</div>}
+            {analysisResult && !loading && (
+              <div className="rounded-lg border bg-white p-4">
+                <h3 className="text-sm font-semibold mb-2">{ANALYSIS_TYPES.find(t => t.id === analysisType)?.label}</h3>
+                <div className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">{analysisResult}</div>
+              </div>
             )}
           </div>
+
+          <div className="flex flex-col">
+            <h2 className="text-sm font-semibold text-slate-800 mb-3">AI Assistant</h2>
+            <div className="flex-1 rounded-lg border bg-white flex flex-col" style={{ minHeight: 400 }}>
+              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                {chatHistory.length === 0 && <p className="text-sm text-muted-foreground">Ask anything about your ICD architecture.</p>}
+                {chatHistory.map((m, i) => (
+                  <div key={i} className={`text-sm ${m.role === 'user' ? 'text-right' : ''}`}>
+                    <div className={`inline-block max-w-[85%] p-2 rounded-lg ${m.role === 'user' ? 'bg-primary text-white' : 'bg-slate-100 text-slate-700'}`}>
+                      <div className="whitespace-pre-wrap">{m.text}</div>
+                    </div>
+                  </div>
+                ))}
+                {chatLoading && <div className="text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin inline mr-1" />Thinking...</div>}
+              </div>
+              <div className="border-t p-3 flex gap-2">
+                <Input placeholder="Ask about your ICD..." value={chatMsg} onChange={e => setChatMsg(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendChat()} className="flex-1" />
+                <Button size="sm" onClick={sendChat} disabled={chatLoading}><Send className="h-4 w-4" /></Button>
+              </div>
+            </div>
+          </div>
         </div>
-      )}
+      </main>
     </div>
   );
 }

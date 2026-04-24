@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { useProject } from '@/lib/project-context';
+import { api } from '@/lib/api-client';  // TODO: migrate to TanStack Query hooks
 import { Link2, RefreshCw, AlertTriangle, Download, ExternalLink } from 'lucide-react';
-import { Sidebar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -36,7 +36,7 @@ export default function TraceabilityPage() {
   const handleSync = async () => {
     setSyncing(true);
     try {
-      const res = await api.post<{ data: TraceLink[] }>('/trace-links/sync');
+      const res = await api.post<{ data: TraceLink[] }>('trace-links/sync');
       setLinks(res.data);
     } catch {
       // handle error
@@ -46,22 +46,17 @@ export default function TraceabilityPage() {
   };
 
   const handleExport = async () => {
-    await api.post('/exports/traceability-matrix');
+    await api.post('exports/traceability-matrix');
   };
 
   const staleCount = links.filter((l) => l.linkStatus === 'stale').length;
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      <Sidebar />
-      <div className="flex flex-1 flex-col overflow-hidden">
+    <div className="flex flex-1 flex-col overflow-hidden">
+
         <Header />
         <main className="flex-1 overflow-y-auto p-6">
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
+          <div>
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-2xl font-semibold tracking-tight">Traceability</h1>
@@ -149,9 +144,9 @@ export default function TraceabilityPage() {
                 ))
               )}
             </div>
-          </motion.div>
+          </div>
         </main>
       </div>
-    </div>
+
   );
 }
