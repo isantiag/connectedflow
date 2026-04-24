@@ -79,3 +79,12 @@ AI-native interface control document management platform for digital engineering
 
 ## Updated Endpoint Count
 - **106 REST API endpoints** (99 + 4 digital thread + 3 MBSE)
+
+### 14. Cross-Product Integration (v2)
+- **REQ-CICD-INT-001**: System shall accept safety findings from SafetyNow on signals. ✅ Implemented
+- **REQ-CICD-INT-002**: System shall expose interface changes since timestamp for polling. ✅ Implemented
+- **REQ-CICD-INT-003**: System shall provide component registry data for SafetyNow. ✅ Implemented
+- **REQ-CICD-INT-004**: System shall support webhook registration for change notifications. ✅ Implemented
+
+## Updated Endpoint Count
+- **111 REST API endpoints** (106 + 5 integration)
