@@ -65,3 +65,17 @@ AI-native interface control document management platform for digital engineering
 ## Endpoint Count
 - **99 REST API endpoints** (all implemented)
 - **3 MCP artifact tools** (artifacts.list, artifacts.get, artifacts.export)
+
+### 12. Digital Thread (v2)
+- **REQ-CICD-DT-001**: System shall trace from requirement → interface → signal → physical layer. ✅ Implemented
+- **REQ-CICD-DT-002**: System shall show impact of interface changes on requirements, systems, connections. ✅ Implemented
+- **REQ-CICD-DT-003**: System shall validate ICD completeness (missing layers, owners, protocols). ✅ Implemented
+- **REQ-CICD-DT-004**: System shall diff two baseline snapshots showing added/removed/modified signals. ✅ Implemented
+
+### 13. MBSE Integration (v2)
+- **REQ-CICD-MBSE-001**: System shall import SysML v2 model interfaces (JSON-LD format). ✅ Implemented
+- **REQ-CICD-MBSE-002**: System shall sync requirements bidirectionally via ReqIF-style payload. ✅ Implemented
+- **REQ-CICD-MBSE-003**: System shall auto-generate ICD from system architecture model. ✅ Implemented
+
+## Updated Endpoint Count
+- **106 REST API endpoints** (99 + 4 digital thread + 3 MBSE)
