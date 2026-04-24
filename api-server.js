@@ -394,24 +394,29 @@ async function start() {
 
   app.put('/api/workflows/:id/approve', async (req, reply) => {
     const session = getSession(req);
-    if (session && session.role !== 'admin') {
-      return reply.status(403).send({ error: 'Only admin users can approve changes' });
+    if (session && session.role !== 'admin' && session.role !== 'reviewer') {
+      return reply.status(403).send({ error: 'Only admin or reviewer users can approve changes' });
     }
-    const [cr] = await db('change_request').where('id', req.params.id).update({
+    // Independence check: creator ≠ approver (ARP 4754B §5.4)
+    const cr = await db('change_request').where('id', req.params.id).first();
+    if (cr && session && cr.created_by === session.userId) {
+      return reply.status(403).send({ error: 'Independence violation: the creator of this change request cannot also approve it (ARP 4754B §5.4)' });
+    }
+    const [updated] = await db('change_request').where('id', req.params.id).update({
       status: 'approved',
       approved_by: session?.userId || null,
       resolved_at: db.fn.now(),
     }).returning('*');
 
     // Apply the change if payload contains the update
-    if (cr && cr.change_payload && cr.entity_type && cr.entity_id) {
+    if (updated && updated.change_payload && updated.entity_type && updated.entity_id) {
       const tableMap = { system: 'system', connection: 'connection', message: 'message', parameter: 'parameter', signal: 'signal' };
-      const table = tableMap[cr.entity_type];
-      if (table && Object.keys(cr.change_payload).length > 0) {
-        await db(table).where('id', cr.entity_id).update(cr.change_payload).catch(() => {});
+      const table = tableMap[updated.entity_type];
+      if (table && Object.keys(updated.change_payload).length > 0) {
+        await db(table).where('id', updated.entity_id).update(updated.change_payload).catch(() => {});
       }
     }
-    return cr;
+    return updated;
   });
 
   app.put('/api/workflows/:id/reject', async (req, reply) => {
