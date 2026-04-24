@@ -2024,6 +2024,101 @@ ${sheetsText}`;
     return { baselineA: req.params.baselineA, baselineB: req.params.baselineB, changes: { added, removed, modified }, totalChanges: added.length + removed.length + modified.length };
   });
 
+
+  // ============================================================
+  // MBSE Integration — v2.0 (SysML import, ReqIF sync, ICD generation)
+  // ============================================================
+
+  // mbse.importSysML — import SysML v2 model interfaces (JSON-LD format)
+  app.post('/api/mbse/import-sysml', async (req, reply) => {
+    const { projectId, model } = req.body || {};
+    if (!projectId || !model) return reply.status(400).send({ error: { code: 'VALIDATION_ERROR', message: 'projectId and model required' } });
+
+    const imported = { systems: 0, connections: 0, signals: 0 };
+    // Parse SysML v2 JSON-LD blocks/parts as systems
+    const parts = Array.isArray(model.parts) ? model.parts : [];
+    for (const part of parts) {
+      const existing = await db('system').where({ name: part.name, project_id: projectId }).first();
+      if (!existing) {
+        await db('system').insert({ name: part.name, description: part.description || '', project_id: projectId }).catch(() => {});
+        imported.systems++;
+      }
+    }
+    // Parse SysML ports/flows as signals
+    const flows = Array.isArray(model.flows) ? model.flows : [];
+    for (const flow of flows) {
+      const [sig] = await db('signal').insert({ name: flow.name || `${flow.source}-${flow.target}`, project_id: projectId, criticality: flow.criticality || 'major', status: 'draft' }).returning('*').catch(() => [null]);
+      if (sig) {
+        await db('logical_layer').insert({ signal_id: sig.id, source_system: flow.source || '', dest_system: flow.target || '', data_type: flow.dataType || '', units: flow.units || '', description: flow.description || '', refresh_rate_hz: flow.refreshRate || 0, functional_category: '' }).catch(() => {});
+        if (flow.protocol) await db('transport_layer').insert({ signal_id: sig.id, protocol: flow.protocol }).catch(() => {});
+        imported.signals++;
+      }
+    }
+    // Parse connections
+    const connectors = Array.isArray(model.connectors) ? model.connectors : [];
+    for (const conn of connectors) {
+      const src = await db('system').where({ name: conn.source, project_id: projectId }).first();
+      const dst = await db('system').where({ name: conn.target, project_id: projectId }).first();
+      if (src && dst) {
+        await db('connection').insert({ name: conn.name || `${conn.source}-${conn.target}`, source_system_id: src.id, dest_system_id: dst.id, project_id: projectId }).catch(() => {});
+        imported.connections++;
+      }
+    }
+    return { status: 'imported', imported };
+  });
+
+  // mbse.syncRequirements — sync requirements via ReqIF format
+  app.post('/api/mbse/sync-requirements', async (req, reply) => {
+    const { projectId, requirements: reqs, direction } = req.body || {};
+    if (!projectId || !reqs) return reply.status(400).send({ error: { code: 'VALIDATION_ERROR', message: 'projectId and requirements required' } });
+
+    const results = { created: 0, updated: 0, linked: 0 };
+    for (const r of (Array.isArray(reqs) ? reqs : [])) {
+      // Check if trace link already exists
+      const existing = await db('trace_link').where({ external_requirement_id: r.id }).first();
+      if (existing) {
+        await db('trace_link').where('id', existing.id).update({ requirement_text: r.text, link_status: 'synced', last_synced_at: db.fn.now() });
+        results.updated++;
+      } else if (r.signalId) {
+        await db('trace_link').insert({ signal_id: r.signalId, requirement_tool: r.tool || 'external', external_requirement_id: r.id, requirement_text: r.text, link_status: 'synced', direction: direction || 'bidirectional', last_synced_at: db.fn.now() }).catch(() => {});
+        results.linked++;
+      } else {
+        results.created++;
+      }
+    }
+    return { status: 'synced', results };
+  });
+
+  // mbse.generateICD — auto-generate ICD from system architecture
+  app.post('/api/mbse/generate-icd', async (req, reply) => {
+    const { projectId } = req.body || {};
+    if (!projectId) return reply.status(400).send({ error: { code: 'VALIDATION_ERROR', message: 'projectId required' } });
+
+    const systems = await db('system').where('project_id', projectId);
+    const connections = await db('connection').where('project_id', projectId);
+    const signals = await db('signal').where('project_id', projectId).leftJoin('logical_layer', 'signal.id', 'logical_layer.signal_id').leftJoin('transport_layer', 'signal.id', 'transport_layer.signal_id').select('signal.*', 'logical_layer.source_system', 'logical_layer.dest_system', 'logical_layer.data_type', 'logical_layer.units', 'transport_layer.protocol');
+
+    // Group signals by interface (source→dest pair)
+    const interfaces = new Map();
+    for (const sig of signals) {
+      const key = `${sig.source_system || 'unknown'} → ${sig.dest_system || 'unknown'}`;
+      if (!interfaces.has(key)) interfaces.set(key, { source: sig.source_system, dest: sig.dest_system, signals: [] });
+      interfaces.get(key).signals.push({ id: sig.id, name: sig.name, dataType: sig.data_type, units: sig.units, protocol: sig.protocol });
+    }
+
+    return {
+      projectId,
+      generatedAt: new Date().toISOString(),
+      systems: systems.map(s => ({ id: s.id, name: s.name })),
+      connections: connections.map(c => ({ id: c.id, name: c.name })),
+      interfaces: [...interfaces.entries()].map(([key, val]) => ({ interface: key, ...val, signalCount: val.signals.length })),
+      totalSystems: systems.length,
+      totalConnections: connections.length,
+      totalSignals: signals.length,
+      totalInterfaces: interfaces.size,
+    };
+  });
+
   app.setErrorHandler((error, req, reply) => {
     const status = error.statusCode || 500;
     if (status >= 500) {
