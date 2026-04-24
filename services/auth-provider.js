@@ -10,8 +10,10 @@ class EmailPasswordProvider {
     this.bcrypt = require('bcryptjs');
     this.crypto = require('crypto');
     this.jwtSecret = config.jwtSecret || process.env.JWT_SECRET || '';
+    if (!this.jwtSecret) console.warn('⚠️  WARNING: JWT_SECRET not set. Auth tokens will be insecure. Set JWT_SECRET in .env');
+    if (!this.jwtSecret) this.jwtSecret = require('crypto').randomBytes(32).toString('hex');
     this.jwtExpiresIn = config.jwtExpiresIn || '8h';
-    this.localMode = !this.jwtSecret;
+    this.localMode = !(config.jwtSecret || process.env.JWT_SECRET);
     this.loginAttempts = new Map();
   }
 
@@ -35,7 +37,7 @@ class EmailPasswordProvider {
     }
     this.loginAttempts.delete(email);
     const payload = await this._buildPayload(user);
-    const token = this.jwt.sign(payload, this.jwtSecret || 'dev-secret', { expiresIn: this.jwtExpiresIn });
+    const token = this.jwt.sign(payload, this.jwtSecret, { expiresIn: this.jwtExpiresIn });
     await this.db('user').where('id', user.id).update({ last_login: this.db.fn.now(), failed_login_attempts: 0 });
     return { token, user: payload };
   }
@@ -50,7 +52,7 @@ class EmailPasswordProvider {
       if (admin) return this._buildPayload(admin);
     }
     if (authHeader.startsWith('Bearer ')) {
-      try { return this.jwt.verify(authHeader.slice(7), this.jwtSecret || 'dev-secret'); } catch { return null; }
+      try { return this.jwt.verify(authHeader.slice(7), this.jwtSecret); } catch { return null; }
     }
     if (apiKey) {
       const hash = this.crypto.createHash('sha256').update(apiKey).digest('hex');
@@ -64,7 +66,7 @@ class EmailPasswordProvider {
   }
 
   async validateToken(token) {
-    try { return this.jwt.verify(token, this.jwtSecret || 'dev-secret'); } catch { return null; }
+    try { return this.jwt.verify(token, this.jwtSecret); } catch { return null; }
   }
 
   async _buildPayload(user) {
