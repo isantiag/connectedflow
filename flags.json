@@ -1,0 +1,10 @@
+{
+  "mfa": false,
+  "sso": false,
+  "itar_enforcement": false,
+  "encryption_at_rest": false,
+  "custom_fields_ui": false,
+  "live_telemetry": true,
+  "signal_import": true,
+  "hw_templates": true
+}
