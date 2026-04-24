@@ -1915,6 +1915,16 @@ ${sheetsText}`;
     return { artifact, format: format || 'json', exportedAt: new Date().toISOString() };
   });
 
+  // Global error handler — never leak DB internals to client (§8 Backend)
+  app.setErrorHandler((error, req, reply) => {
+    const status = error.statusCode || 500;
+    if (status >= 500) {
+      req.log.error({ err: error, url: req.url, method: req.method }, 'Internal error');
+      return reply.status(500).send({ error: { code: 'INTERNAL_ERROR', message: 'An internal error occurred' } });
+    }
+    return reply.status(status).send({ error: { code: error.code || 'ERROR', message: error.message } });
+  });
+
   await app.listen({ port: PORT, host: '0.0.0.0' });
   console.log('ConnectedICD API on http://localhost:' + PORT);
 }
