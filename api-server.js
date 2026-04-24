@@ -2101,7 +2101,7 @@ ${sheetsText}`;
 
     const systems = await db('system').where('project_id', projectId);
     const connections = await db('connection').where('project_id', projectId);
-    const signals = await db('signal').where('signal.project_id', projectId).leftJoin('logical_layer', 'signal.id', 'logical_layer.signal_id').leftJoin('transport_layer', 'signal.id', 'transport_layer.signal_id').select('signal.id', 'signal.name', 'logical_layer.source_system', 'logical_layer.dest_system', 'logical_layer.data_type', 'logical_layer.units', 'transport_layer.protocol');
+    const signals = await db('signal').where('signal.project_id', projectId).leftJoin('logical_layer', 'signal.id', 'logical_layer.signal_id').leftJoin('transport_layer', 'signal.id', 'transport_layer.signal_id').select('signal.id', 'signal.name', 'logical_layer.source_system', 'logical_layer.dest_system', 'logical_layer.data_type', 'logical_layer.units', 'transport_layer.protocol_id as protocol');
 
     // Group signals by interface (source→dest pair)
     const interfaces = new Map();
