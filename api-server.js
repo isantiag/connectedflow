@@ -277,7 +277,10 @@ async function start() {
 
   app.post('/api/baselines', async (req, reply) => {
     const session = getSession(req);
-    if (session && !hasPermission(session, 'baselines', 'create')) {
+    if (!session) {
+      return reply.status(401).send({ error: 'Not authenticated' });
+    }
+    if (!hasPermission(session, 'baselines', 'create')) {
       return reply.status(403).send({ error: 'Only admin users can create baselines' });
     }
     const v = validate(schemas.CreateBaselineSchema, req.body); if (!v.ok) return reply.status(422).send(v.error);
@@ -359,7 +362,10 @@ async function start() {
 
   app.delete('/api/baselines/:id', async (req, reply) => {
     const session = getSession(req);
-    if (session && !hasPermission(session, 'baselines', 'delete')) {
+    if (!session) {
+      return reply.status(401).send({ error: 'Not authenticated' });
+    }
+    if (!hasPermission(session, 'baselines', 'delete')) {
       return reply.status(403).send({ error: 'Only admin users can delete baselines' });
     }
     await db('baseline').where('id', req.params.id).del();
@@ -395,17 +401,23 @@ async function start() {
 
   app.put('/api/workflows/:id/approve', async (req, reply) => {
     const session = getSession(req);
-    if (session && session.role !== 'admin' && session.role !== 'reviewer') {
+    if (!session) {
+      return reply.status(401).send({ error: 'Not authenticated' });
+    }
+    if (session.role !== 'admin' && session.role !== 'reviewer') {
       return reply.status(403).send({ error: 'Only admin or reviewer users can approve changes' });
     }
     // Independence check: creator ≠ approver (ARP 4754B §5.4)
     const cr = await db('change_request').where('id', req.params.id).first();
-    if (cr && session && cr.created_by === session.userId) {
+    if (!cr) {
+      return reply.status(404).send({ error: 'Change request not found' });
+    }
+    if (cr.submitted_by === session.userId) {
       return reply.status(403).send({ error: 'Independence violation: the creator of this change request cannot also approve it (ARP 4754B §5.4)' });
     }
     const [updated] = await db('change_request').where('id', req.params.id).update({
       status: 'approved',
-      approved_by: session?.userId || null,
+      approved_by: session.userId,
       resolved_at: db.fn.now(),
     }).returning('*');
 
@@ -422,12 +434,15 @@ async function start() {
 
   app.put('/api/workflows/:id/reject', async (req, reply) => {
     const session = getSession(req);
-    if (session && session.role !== 'admin') {
+    if (!session) {
+      return reply.status(401).send({ error: 'Not authenticated' });
+    }
+    if (session.role !== 'admin') {
       return reply.status(403).send({ error: 'Only admin users can reject changes' });
     }
     const [cr] = await db('change_request').where('id', req.params.id).update({
       status: 'rejected',
-      approved_by: session?.userId || null,
+      approved_by: session.userId,
       rejection_reason: req.body.reason || '',
       resolved_at: db.fn.now(),
     }).returning('*');
@@ -670,9 +685,12 @@ async function start() {
   // AI Document Parsing (Gemini-powered)
   // ============================================================
 
-  const GEMINI_KEY = process.env.GEMINI_API_KEY || 'AIzaSyADjC55wtMdRPbrcZhmx9aluv18hkmmWio';
+  const GEMINI_KEY = process.env.GEMINI_API_KEY;
 
   async function callGemini(prompt, maxTokens = 4096) {
+    if (!GEMINI_KEY) {
+      throw new Error('GEMINI_API_KEY is required');
+    }
     const { GoogleGenerativeAI } = require('@google/generative-ai');
     const genAI = new GoogleGenerativeAI(GEMINI_KEY);
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
@@ -1518,6 +1536,9 @@ ${sheetsText}`;
   app.post('/api/live/start', async (req, reply) => {
     const { adapterId, projectId, connectionId } = req.body;
     if (!adapterId) return reply.status(400).send({ error: 'adapterId required' });
+    if (adapterId.startsWith('can:') && !/^can:[a-zA-Z0-9_-]{1,16}$/.test(adapterId)) {
+      return reply.status(400).send({ error: 'Invalid CAN adapter id format' });
+    }
 
     const pid = projectId || (await db('project').first('id'))?.id;
     // Get parameters to monitor
@@ -2118,6 +2139,12 @@ ${sheetsText}`;
       systems: systems.map(s => ({ id: s.id, name: s.name })),
       connections: connections.map(c => ({ id: c.id, name: c.name })),
       interfaces: [...interfaces.entries()].map(([key, val]) => ({ interface: key, ...val, signalCount: val.signals.length })),
+      totalSystems: systems.length,
+      totalConnections: connections.length,
+      totalSignals: signals.length,
+      totalInterfaces: interfaces.size,
+    };
+  });
 
   // ============================================================
   // Cross-Product Integration — ConnectedICD ↔ SafetyNow bridge
@@ -2180,13 +2207,6 @@ ${sheetsText}`;
 
   app.get('/api/integration/webhooks', async () => {
     return app._webhooks || [];
-  });
-
-      totalSystems: systems.length,
-      totalConnections: connections.length,
-      totalSignals: signals.length,
-      totalInterfaces: interfaces.size,
-    };
   });
 
   app.setErrorHandler((error, req, reply) => {
