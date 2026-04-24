@@ -3,6 +3,7 @@
  * ConnectedICD API — standalone server.
  * Run: node api-server.js
  */
+try { require('dotenv').config(); } catch { /* dotenv optional */ }
 const Fastify = require('fastify');
 const cors = require('@fastify/cors');
 const knex = require('knex');
