@@ -1964,8 +1964,12 @@ ${sheetsText}`;
       // Affected connections between these systems
       const systemIds = systems.map(s => s.id);
       if (systemIds.length > 0) {
-        const conns = await db('connection').whereIn('source_system_id', systemIds).orWhereIn('dest_system_id', systemIds);
-        affected.connections = conns.map(c => ({ id: c.id, name: c.name }));
+        const ports = await db('system_port').whereIn('system_id', systemIds);
+        const portIds = ports.map(p => p.id);
+        if (portIds.length > 0) {
+          const conns = await db('connection').whereIn('source_port_id', portIds).orWhereIn('dest_port_id', portIds);
+          affected.connections = conns.map(c => ({ id: c.id, name: c.name }));
+        }
       }
     }
 
