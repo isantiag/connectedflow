@@ -2118,6 +2118,70 @@ ${sheetsText}`;
       systems: systems.map(s => ({ id: s.id, name: s.name })),
       connections: connections.map(c => ({ id: c.id, name: c.name })),
       interfaces: [...interfaces.entries()].map(([key, val]) => ({ interface: key, ...val, signalCount: val.signals.length })),
+
+  // ============================================================
+  // Cross-Product Integration — ConnectedICD ↔ SafetyNow bridge
+  // ============================================================
+
+  // When SafetyNow identifies an interface hazard, create a finding in ConnectedICD
+  app.post('/api/integration/safety-finding', async (req, reply) => {
+    const { signalId, projectId, findingType, severity, description, sourceArtifactId, sourceTool } = req.body || {};
+    if (!signalId || !description) return reply.status(400).send({ error: { code: 'VALIDATION_ERROR', message: 'signalId and description required' } });
+    // Create an audit entry for the safety finding
+    await db('audit_entry').insert({
+      user_id: 'safetynow-integration',
+      entity_type: 'signal',
+      entity_id: signalId,
+      action: 'safety_finding',
+      before_state: null,
+      after_state: { findingType: findingType || 'hazard', severity: severity || 'major', description, sourceArtifactId, sourceTool: sourceTool || 'safetynow' },
+    });
+    // Add a comment on the signal
+    await db('signal_comment').insert({ signal_id: signalId, user_id: 'safetynow-integration', content: `[SafetyNow ${findingType || 'hazard'}] ${severity || 'major'}: ${description}` }).catch(() => {});
+    return { status: 'recorded', signalId, findingType: findingType || 'hazard' };
+  });
+
+  // Get interface changes since a timestamp (SafetyNow polls this)
+  app.get('/api/integration/changes-since', async (req) => {
+    const since = req.query.since || new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const projectId = req.query.projectId;
+    let query = db('audit_entry').where('timestamp', '>=', since).whereIn('action', ['create', 'update', 'delete']).whereIn('entity_type', ['signal', 'connection', 'message', 'parameter']);
+    const changes = await query.orderBy('timestamp', 'desc').limit(100);
+    return { since, changeCount: changes.length, changes: changes.map(c => ({ entityType: c.entity_type, entityId: c.entity_id, action: c.action, timestamp: c.timestamp, afterState: c.after_state })) };
+  });
+
+  // Shared component registry — get signal with failure rate data for SafetyNow
+  app.get('/api/integration/component-registry/:signalId', async (req) => {
+    const sig = await db('signal').where('id', req.params.signalId).first();
+    if (!sig) return { error: 'Signal not found' };
+    const logical = await db('logical_layer').where('signal_id', sig.id).first();
+    const transport = await db('transport_layer').where('signal_id', sig.id).first();
+    const traces = await db('trace_link').where('signal_id', sig.id);
+    return {
+      id: sig.id, name: sig.name, criticality: sig.criticality, status: sig.status,
+      source: logical?.source_system, dest: logical?.dest_system,
+      protocol: transport?.protocol_id, dataType: logical?.data_type, units: logical?.units,
+      refreshRateHz: logical?.refresh_rate_hz,
+      traceLinks: traces.map(t => ({ requirementId: t.external_requirement_id, tool: t.requirement_tool, status: t.link_status })),
+      // Placeholder for failure rate data — populated when FRACAS is integrated
+      failureRate: null, failureRateSource: null, mtbf: null,
+    };
+  });
+
+  // Webhook: notify SafetyNow when interface changes (push model)
+  app.post('/api/integration/webhook/register', async (req, reply) => {
+    const { url, events, tool } = req.body || {};
+    if (!url) return reply.status(400).send({ error: { code: 'VALIDATION_ERROR', message: 'url required' } });
+    // Store webhook registration (in-memory for now, DB later)
+    if (!app._webhooks) app._webhooks = [];
+    app._webhooks.push({ url, events: events || ['signal.updated', 'connection.updated'], tool: tool || 'unknown', registeredAt: new Date().toISOString() });
+    return { status: 'registered', url, events: events || ['signal.updated', 'connection.updated'] };
+  });
+
+  app.get('/api/integration/webhooks', async () => {
+    return app._webhooks || [];
+  });
+
       totalSystems: systems.length,
       totalConnections: connections.length,
       totalSignals: signals.length,
