@@ -1916,6 +1916,114 @@ ${sheetsText}`;
   });
 
   // Global error handler — never leak DB internals to client (§8 Backend)
+
+  // ============================================================
+  // Digital Thread — v2.0 (trace, impact, validate, diff)
+  // ============================================================
+
+  // digitalThread.trace — trace requirement → interface → signal → test
+  app.get('/api/digital-thread/trace/:signalId', async (req) => {
+    const sig = await db('signal').where('id', req.params.signalId).first();
+    if (!sig) return { error: 'Signal not found' };
+    const logical = await db('logical_layer').where('signal_id', sig.id).first();
+    const transport = await db('transport_layer').where('signal_id', sig.id).first();
+    const physical = await db('physical_layer').where('signal_id', sig.id).first();
+    const traceLinks = await db('trace_link').where('signal_id', sig.id);
+    const comments = await db('signal_comment').where('signal_id', sig.id);
+    const ownership = await db('signal_ownership').where('signal_id', sig.id).first();
+    return {
+      signal: sig,
+      layers: { logical, transport, physical },
+      traceLinks,
+      ownership,
+      commentCount: comments.length,
+      thread: [
+        { level: 'requirement', items: traceLinks.map(t => ({ id: t.external_requirement_id, text: t.requirement_text, tool: t.requirement_tool, status: t.link_status })) },
+        { level: 'interface', items: [{ signalId: sig.id, name: sig.name, source: logical?.source_system, dest: logical?.dest_system, protocol: transport?.protocol }] },
+        { level: 'physical', items: physical ? [{ connector: physical.connector, pin: physical.pin_number, wire: physical.wire_gauge }] : [] },
+      ],
+    };
+  });
+
+  // digitalThread.impact — when interface changes, show all affected items
+  app.get('/api/digital-thread/impact/:signalId', async (req) => {
+    const sig = await db('signal').where('id', req.params.signalId).first();
+    if (!sig) return { error: 'Signal not found' };
+    const logical = await db('logical_layer').where('signal_id', sig.id).first();
+    const affected = { requirements: [], systems: [], connections: [], signals: [] };
+
+    // Affected requirements via trace links
+    const traces = await db('trace_link').where('signal_id', sig.id);
+    affected.requirements = traces.map(t => ({ id: t.external_requirement_id, text: t.requirement_text, tool: t.requirement_tool }));
+
+    // Affected systems (source and dest)
+    if (logical) {
+      const systems = await db('system').whereIn('name', [logical.source_system, logical.dest_system].filter(Boolean));
+      affected.systems = systems.map(s => ({ id: s.id, name: s.name }));
+
+      // Affected connections between these systems
+      const systemIds = systems.map(s => s.id);
+      if (systemIds.length > 0) {
+        const conns = await db('connection').whereIn('source_system_id', systemIds).orWhereIn('dest_system_id', systemIds);
+        affected.connections = conns.map(c => ({ id: c.id, name: c.name }));
+      }
+    }
+
+    // Other signals on same bus/protocol
+    if (logical) {
+      const related = await db('signal')
+        .leftJoin('transport_layer', 'signal.id', 'transport_layer.signal_id')
+        .where('signal.project_id', sig.project_id)
+        .whereNot('signal.id', sig.id)
+        .select('signal.id', 'signal.name', 'transport_layer.protocol');
+      affected.signals = related.filter(r => r.protocol === (await db('transport_layer').where('signal_id', sig.id).first())?.protocol);
+    }
+
+    return { signal: { id: sig.id, name: sig.name }, impactedItems: affected, totalAffected: affected.requirements.length + affected.systems.length + affected.connections.length };
+  });
+
+  // icd.validate — check ICD completeness
+  app.get('/api/icd/validate/:projectId', async (req) => {
+    const signals = await db('signal').where('project_id', req.params.projectId);
+    const issues = [];
+    for (const sig of signals) {
+      const logical = await db('logical_layer').where('signal_id', sig.id).first();
+      const transport = await db('transport_layer').where('signal_id', sig.id).first();
+      if (!logical) issues.push({ signalId: sig.id, name: sig.name, severity: 'error', message: 'Missing logical layer definition' });
+      else {
+        if (!logical.source_system) issues.push({ signalId: sig.id, name: sig.name, severity: 'warning', message: 'No source system assigned' });
+        if (!logical.dest_system) issues.push({ signalId: sig.id, name: sig.name, severity: 'warning', message: 'No destination system assigned' });
+        if (!logical.data_type) issues.push({ signalId: sig.id, name: sig.name, severity: 'warning', message: 'No data type specified' });
+        if (!logical.units) issues.push({ signalId: sig.id, name: sig.name, severity: 'info', message: 'No units specified' });
+      }
+      if (!transport) issues.push({ signalId: sig.id, name: sig.name, severity: 'warning', message: 'Missing transport layer definition' });
+      else if (!transport.protocol) issues.push({ signalId: sig.id, name: sig.name, severity: 'warning', message: 'No protocol specified' });
+      const ownership = await db('signal_ownership').where('signal_id', sig.id).first();
+      if (!ownership) issues.push({ signalId: sig.id, name: sig.name, severity: 'info', message: 'No ownership assigned' });
+    }
+    const errors = issues.filter(i => i.severity === 'error').length;
+    const warnings = issues.filter(i => i.severity === 'warning').length;
+    return { totalSignals: signals.length, issues, summary: { errors, warnings, info: issues.length - errors - warnings }, completeness: signals.length > 0 ? Math.round(((signals.length - errors) / signals.length) * 100) : 100 };
+  });
+
+  // icd.diff — compare two baseline snapshots
+  app.get('/api/icd/diff/:baselineA/:baselineB', async (req) => {
+    const snapA = await db('baseline_snapshot').where('baseline_id', req.params.baselineA);
+    const snapB = await db('baseline_snapshot').where('baseline_id', req.params.baselineB);
+    const mapA = new Map(snapA.map(s => [s.signal_id, s]));
+    const mapB = new Map(snapB.map(s => [s.signal_id, s]));
+    const added = snapB.filter(s => !mapA.has(s.signal_id)).map(s => ({ signalId: s.signal_id, change: 'added' }));
+    const removed = snapA.filter(s => !mapB.has(s.signal_id)).map(s => ({ signalId: s.signal_id, change: 'removed' }));
+    const modified = [];
+    for (const [sigId, a] of mapA) {
+      const b = mapB.get(sigId);
+      if (b && JSON.stringify(a.snapshot_data) !== JSON.stringify(b.snapshot_data)) {
+        modified.push({ signalId: sigId, change: 'modified', before: a.snapshot_data, after: b.snapshot_data });
+      }
+    }
+    return { baselineA: req.params.baselineA, baselineB: req.params.baselineB, changes: { added, removed, modified }, totalChanges: added.length + removed.length + modified.length };
+  });
+
   app.setErrorHandler((error, req, reply) => {
     const status = error.statusCode || 500;
     if (status >= 500) {
