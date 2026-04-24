@@ -1976,7 +1976,8 @@ ${sheetsText}`;
         .where('signal.project_id', sig.project_id)
         .whereNot('signal.id', sig.id)
         .select('signal.id', 'signal.name', 'transport_layer.protocol');
-      affected.signals = related.filter(r => r.protocol === (await db('transport_layer').where('signal_id', sig.id).first())?.protocol);
+      const sigTransport = await db('transport_layer').where('signal_id', sig.id).first();
+      affected.signals = related.filter(r => r.protocol && r.protocol === sigTransport?.protocol);
     }
 
     return { signal: { id: sig.id, name: sig.name }, impactedItems: affected, totalAffected: affected.requirements.length + affected.systems.length + affected.connections.length };
