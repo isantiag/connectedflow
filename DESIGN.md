@@ -20,7 +20,44 @@
 └──────────────────────┴──────────────────────────┘
 ```
 
-## Database Schema — 46 Tables + tenant table
+## Monorepo Structure (Turborepo)
+
+```
+connectedflow/
+├── api-server.js              # Fastify API — 111 REST endpoints
+├── mcp-server/server.py       # Python MCP server — 20 tools
+├── packages/
+│   ├── api-gateway/           # Route registration, RBAC middleware, error handler, correlation IDs
+│   ├── core-services/         # Business logic: signals, baselines, workflows, N2, export, digital thread
+│   ├── ai-services/           # Document parsing, AI extraction, anomaly detection
+│   ├── integration-services/  # Stimulus generator, bus frame encoding/decoding, live telemetry
+│   ├── shared-types/          # TypeScript interfaces and type definitions
+│   ├── schemas/               # Zod strict validation schemas for all inputs
+│   └── web-client/            # Next.js App Router frontend with shadcn/ui
+├── services/
+│   ├── auth-provider.js       # Swappable AuthProvider (EmailPasswordProvider)
+│   └── python-ai/             # Python AI extraction service
+├── lib/
+│   ├── feature-flags.js       # Feature flag system (flags.json)
+│   └── socketcan-adapter.js   # CAN bus hardware adapter
+├── migrations/                # SQL migration files (46 tables)
+├── seeds/                     # Seed data (FCS example, ICD hierarchy)
+└── k8s/                       # Kubernetes manifests
+```
+
+## Package Roles
+
+| Package | Role | Test Files | Tests |
+|---------|------|-----------|-------|
+| `core-services` | Signal CRUD, baselines, workflows, N2 matrix, export, digital thread, MBSE | 11 | 276 |
+| `integration-services` | Stimulus generation, bus frame encoding, live telemetry, SafetyNow bridge | 6 | 114 |
+| `ai-services` | Document parsing, AI extraction, anomaly detection | 3 | 48 |
+| `api-gateway` | Route registration, RBAC middleware, error handling, correlation IDs | 2 | 28 |
+| `web-client` | Next.js frontend — pages, components, API client | 2 | 87 |
+| `shared-types` | TypeScript type definitions | — | — |
+| `schemas` | Zod strict validation schemas | — | — |
+
+## Database Schema — 46 Tables
 
 All tables have `tenant_id` (NOT NULL, FK, indexed) and `custom_fields` (JSONB, default '{}').
 
@@ -91,25 +128,93 @@ All tables have `tenant_id` (NOT NULL, FK, indexed) and `custom_fields` (JSONB, 
 | notification | User notifications |
 | live_parameter_readings | Live telemetry data |
 
+## MCP Tool Inventory (20 tools)
+
+Python MCP server (`mcp-server/server.py`, port 4102):
+
+| Tool | Description |
+|------|-------------|
+| `list_signals` | List signals with optional project/status filter |
+| `get_signal` | Get signal by ID with all layers |
+| `create_signal` | Create signal with logical/transport/physical data |
+| `bulk_import_signals` | Bulk import signals from JSON array |
+| `list_baselines` | List all baselines |
+| `create_baseline` | Create a new baseline |
+| `freeze_baseline` | Freeze a baseline snapshot |
+| `icd_quality_check` | Validate signal definition quality |
+| `export_template_url` | Get export template URL by protocol |
+| `export_signals_url` | Get signal export URL |
+| `list_workflows` | List change request workflows |
+| `ingest_file` | Ingest a file for AI extraction |
+| `preview_ingestion` | Preview file ingestion results |
+| `ai_change_impact` | AI-powered change impact analysis |
+| `analyze_throughput` | Analyze bus throughput |
+| `propose_routing` | Propose signal routing between systems |
+| `analyze_trends` | Analyze signal trends over time |
+| `validate_constraints` | Validate ICD constraints |
+| `architecture_insights` | AI architecture analysis |
+| `detect_anomalies` | Detect anomalies in signal definitions |
+
 ## Auth Model
-- **AuthProvider interface**: `services/auth-provider.js` — EmailPasswordProvider
+
+- **AuthProvider interface**: `services/auth-provider.js` — EmailPasswordProvider (swappable for SSO)
 - **Methods**: login(), logout(), getUser(), validateToken()
-- **Roles**: Admin, Lead, Analyst, Reviewer, Viewer
-- **Independence**: Creator ≠ approver enforced on workflow approve endpoint
+- **5 Roles**: Admin, Lead, Analyst, Reviewer, Viewer
+- **Independence**: Creator ≠ approver enforced on workflow approve endpoint (ARP 4754B §5.4)
 - **JWT**: Configurable secret via JWT_SECRET env var, random fallback with warning
 - **API Keys**: SHA-256 hashed, prefix stored for identification
+- **Multi-tenancy**: tenant_id on all 46 tables, enforced at query level
 
 ## Infrastructure
-- **Runtime**: Node.js + Fastify
+
+- **Runtime**: Node.js 22 + Fastify
 - **Database**: PostgreSQL 16 via Docker (port 5434)
 - **Cache**: Redis 7 via Docker (port 6380)
-- **Query Builder**: Knex.js
-- **Validation**: Zod strict schemas on all POST/PUT endpoints
-- **Logging**: Pino (built into Fastify)
-- **Error Handling**: Global error handler — never leaks DB internals
+- **Query Builder**: Knex.js (parameterized queries only — §6, §9)
+- **Validation**: Zod `.strict()` schemas on all POST/PUT endpoints (§2)
+- **Logging**: Pino (structured JSON, built into Fastify)
+- **Error Handling**: Global error handler — typed error classes, consistent envelope `{error: {code, message, details?}}` (§8)
 - **Feature Flags**: flags.json + lib/feature-flags.js
+- **Build**: Turborepo for monorepo orchestration
+- **Tests**: Vitest + fast-check (property-based testing)
 
 ## Integration Points
-- **AssureFlow**: ConnectedICD signals consumed via AssureFlow's connectedicd module
-- **MCP Artifact Interface**: Port 4102 — artifacts.list, artifacts.get, artifacts.export
-- **Admin MCP**: Port 4100 — remote administration
+
+| Product | Integration |
+|---------|-------------|
+| **SafetyNow** | Accepts safety findings on signals (REQ-CICD-INT-001), provides component registry (REQ-CICD-INT-003) |
+| **AssureFlow** | ConnectedICD signals consumed via AssureFlow's connectedicd module |
+| **DesignerMind** | Webhook notifications on interface changes (REQ-CICD-INT-004), polling API (REQ-CICD-INT-002) |
+| **MCP Artifact Interface** | Port 4102 — artifacts.list, artifacts.get, artifacts.export (§9.2) |
+
+## AGI Architecture (Planned)
+
+### RLVR Scoring Integration
+
+Reinforcement Learning with Verifiable Rewards for AI extraction quality:
+
+```
+┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+│  AI Extract  │────▶│  RLVR Score  │────▶│  Strategy    │
+│  (parser)    │     │  (verifier)  │     │  Selection   │
+└──────────────┘     └──────────────┘     └──────────────┘
+                            │
+                     ┌──────▼──────┐
+                     │ Audit Trail │
+                     │ (immutable) │
+                     └─────────────┘
+```
+
+- Score AI extractions against ground truth (confirmed signals)
+- Rank extraction strategies by accuracy
+- All scoring events logged to append-only audit trail (§7)
+
+### Constitutional Review
+
+Domain-constraint enforcement for AI-generated ICD content:
+
+- **Protocol rules**: Valid protocol identifiers, correct field ranges
+- **Unit consistency**: Compatible units across connected signals
+- **Naming conventions**: Enforce signal naming standards
+- **Configurable**: Admin-editable rule sets without code changes
+- **Gate**: Constitutional review runs before AI content enters baseline
