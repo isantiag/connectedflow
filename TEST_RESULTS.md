@@ -1,28 +1,28 @@
 # ConnectedICD — TEST_RESULTS.md
 
 **Date**: 2026-04-24
-**Commit**: `605cbb8` — test: full 10-step test template — page smoke, content, interaction tests + bug fixes
+**Commit**: constitutional review + digital thread tools + doc updates
 **Runner**: Vitest 4.1.5 / Node.js 22.22.2
 
 ## Summary
 
 | | |
 |---|---|
-| **Total test files** | 22 passed, 2 skipped (no tests) |
-| **Total tests** | **553 passed**, 0 failed |
+| **Total test files** | 25 passed, 2 skipped (no tests) |
+| **Total tests** | **568 passed**, 0 failed |
 | **Packages with tests** | 5 of 7 |
 | **Status** | ✅ All passing |
 
 ## Breakdown by Package
 
-### packages/core-services — 276 tests (11 files)
+### packages/core-services — 291 tests (12 files)
 
 Core business logic: signal CRUD, baselines, workflows, N2 matrix, export, digital thread, MBSE.
 
 ```
- Test Files  11 passed (11)
-      Tests  276 passed (276)
-   Duration  512ms
+ Test Files  12 passed (12)
+      Tests  291 passed (291)
+   Duration  497ms
 ```
 
 Includes fast-check property-based tests for:
