@@ -26,7 +26,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Try /auth/me — works in local mode without token too
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (saved) headers['Authorization'] = `Bearer ${saved}`;
-    fetch(`${API_BASE}/auth/me`, { headers })
+    fetch(`${API_BASE}/auth/me`, { headers, signal: AbortSignal.timeout(10000) })
       .then(r => r.ok ? r.json() : null)
       .then(u => {
         if (u && !u.error) { setUser(u); if (saved) setToken(saved); }
@@ -42,7 +42,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (password) body.password = password;
       const res = await fetch(`${API_BASE}/auth/login`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: JSON.stringify(body), signal: AbortSignal.timeout(10000),
       });
       const data = await res.json();
       if (!res.ok) return data.error?.message || data.error || 'Login failed';
@@ -56,7 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => {
-    if (token) fetch(`${API_BASE}/auth/logout`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } }).catch(() => {});
+    if (token) fetch(`${API_BASE}/auth/logout`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(10000) }).catch(() => {});
     setToken(null); setUser(null);
     localStorage.removeItem('connectedICD_token');
   };

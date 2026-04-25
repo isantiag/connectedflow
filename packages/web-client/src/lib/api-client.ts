@@ -26,7 +26,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     if (token) headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const res = await fetch(url.toString(), { ...rest, headers, body: body != null ? JSON.stringify(body) : undefined });
+  const res = await fetch(url.toString(), { ...rest, headers, body: body != null ? JSON.stringify(body) : undefined, signal: AbortSignal.timeout(10000) });
 
   if (res.status === 401) {
     // Token expired or invalid — clear and redirect to login
