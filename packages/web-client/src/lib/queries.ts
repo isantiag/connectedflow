@@ -86,6 +86,14 @@ export function useSignals(projectId?: string, search?: string) {
   return useQuery({ queryKey: ['signals', projectId, search], queryFn: () => api.get<any[]>('signals', { ...(projectId ? { projectId } : {}), search: search || '', page: '1', limit: '50' }) });
 }
 
+export function useSignal(id?: string) {
+  return useQuery({ queryKey: ['signal', id], queryFn: () => api.get<any>(`signals/${id}`), enabled: !!id });
+}
+
+export function useSignalValidation(id?: string) {
+  return useQuery({ queryKey: ['signal-validation', id], queryFn: () => api.get<any>(`signals/${id}/validate`), enabled: !!id });
+}
+
 // === Live Adapters ===
 export function useLiveAdapters() {
   return useQuery({ queryKey: ['live-adapters'], queryFn: () => api.get<any[]>('live/adapters') });

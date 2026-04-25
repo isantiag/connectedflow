@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { ArrowLeft, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { Header } from '@/components/layout/header';
@@ -9,17 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
-import { api } from '@/lib/api-client';
-
-interface SignalDetail {
-  id: string;
-  name: string;
-  status: string;
-  criticality: string;
-  logical?: Record<string, unknown>;
-  transport?: Record<string, unknown>;
-  physical?: Record<string, unknown>;
-}
+import { useSignal, useSignalValidation } from '@/lib/queries';
 
 interface ValidationIssue {
   field: string;
@@ -29,23 +18,9 @@ interface ValidationIssue {
 
 export default function SignalDetailPage() {
   const params = useParams<{ id: string }>();
-  const [signal, setSignal] = useState<SignalDetail | null>(null);
-  const [validations, setValidations] = useState<ValidationIssue[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!params.id) return;
-    Promise.all([
-      api.get<SignalDetail>(`/signals/${params.id}`),
-      api.get<{ issues: ValidationIssue[] }>(`/signals/${params.id}/validate`),
-    ])
-      .then(([sig, val]) => {
-        setSignal(sig);
-        setValidations(val.issues);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [params.id]);
+  const { data: signal, isLoading: loading } = useSignal(params.id);
+  const { data: valData } = useSignalValidation(params.id);
+  const validations: ValidationIssue[] = valData?.issues ?? [];
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">

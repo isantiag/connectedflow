@@ -25,20 +25,15 @@ export async function excelRoutes(app: FastifyInstance) {
   app.get<{ Querystring: { projectId?: string; format?: string } }>(
     '/api/signals/export',
     async (request, reply) => {
-      // TODO: fetch signals from DB by projectId
-      // For now, return empty template as placeholder
-      const signals: any[] = []; // await signalService.querySignals({ projectId: request.query.projectId });
-      const buffer = await excel.exportSignals(signals);
-      reply.header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      reply.header('Content-Disposition', 'attachment; filename="connectedicd-signals.xlsx"');
-      return reply.send(buffer);
+      // TODO(NOT-IMPLEMENTED): TASK-046 — wire signal export to DB query
+      return reply.status(501).send({ error: { code: 'NOT_IMPLEMENTED', message: 'Signal export by projectId not yet wired to database' } });
     }
   );
 
   // POST /api/signals/import-excel
   app.post('/api/signals/import-excel', async (request, reply) => {
     const data = await request.file?.();
-    if (!data) return reply.status(400).send({ error: 'No file uploaded' });
+    if (!data) return reply.status(400).send({ error: { code: 'BAD_REQUEST', message: 'No file uploaded' } });
     const buffer = Buffer.from(await data.toBuffer());
     const result = await excel.parseExcel(buffer);
     return reply.send(result);

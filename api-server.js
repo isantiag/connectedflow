@@ -100,22 +100,22 @@ async function start() {
 
   app.get('/api/auth/me', async (req, reply) => {
     const user = getSession(req);
-    if (!user) return reply.status(401).send({ error: 'Not authenticated' });
+    if (!user) return reply.status(401).send({ error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } });
     return user;
   });
 
   app.put('/api/auth/password', async (req, reply) => {
     const user = getSession(req);
-    if (!user) return reply.status(401).send({ error: 'Not authenticated' });
+    if (!user) return reply.status(401).send({ error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } });
     const { currentPassword, newPassword } = req.body;
-    if (!newPassword || newPassword.length < 6) return reply.status(400).send({ error: 'Password must be at least 6 characters' });
+    if (!newPassword || newPassword.length < 6) return reply.status(400).send({ error: { code: 'BAD_REQUEST', message: 'Password must be at least 6 characters' } });
     if (!/[A-Z]/.test(newPassword) || !/[a-z]/.test(newPassword) || !/[0-9]/.test(newPassword) || !/[^A-Za-z0-9]/.test(newPassword)) {
-      return reply.status(400).send({ error: 'Password must contain uppercase, lowercase, digit, and special character' });
+      return reply.status(400).send({ error: { code: 'BAD_REQUEST', message: 'Password must contain uppercase, lowercase, digit, and special character' } });
     }
     const dbUser = await db('user').where('id', user.userId).first();
     if (dbUser.password_hash && currentPassword) {
       const valid = await bcrypt.compare(currentPassword, dbUser.password_hash);
-      if (!valid) return reply.status(401).send({ error: 'Current password is incorrect' });
+      if (!valid) return reply.status(401).send({ error: { code: 'UNAUTHORIZED', message: 'Current password is incorrect' } });
     }
     const hash = await bcrypt.hash(newPassword, 10);
     await db('user').where('id', user.userId).update({ password_hash: hash });
@@ -127,7 +127,7 @@ async function start() {
   // API Keys
   app.post('/api/auth/api-keys', async (req, reply) => {
     const user = getSession(req);
-    if (!user) return reply.status(401).send({ error: 'Not authenticated' });
+    if (!user) return reply.status(401).send({ error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } });
     const label = req.body.label || 'default';
     const rawKey = 'cicd_' + crypto.randomBytes(32).toString('hex');
     const keyHash = crypto.createHash('sha256').update(rawKey).digest('hex');
@@ -138,13 +138,13 @@ async function start() {
 
   app.get('/api/auth/api-keys', async (req, reply) => {
     const user = getSession(req);
-    if (!user) return reply.status(401).send({ error: 'Not authenticated' });
+    if (!user) return reply.status(401).send({ error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } });
     return db('api_key').where({ user_id: user.userId, revoked: false }).select('id', 'key_prefix', 'label', 'created_at');
   });
 
   app.delete('/api/auth/api-keys/:id', async (req, reply) => {
     const user = getSession(req);
-    if (!user) return reply.status(401).send({ error: 'Not authenticated' });
+    if (!user) return reply.status(401).send({ error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } });
     await db('api_key').where({ id: req.params.id, user_id: user.userId }).update({ revoked: true });
     reply.status(204).send();
   });
@@ -157,9 +157,9 @@ async function start() {
 
   app.post('/api/users', async (req, reply) => {
     const user = getSession(req);
-    if (!user || user.role !== 'admin') return reply.status(403).send({ error: 'Admin only' });
+    if (!user || user.role !== 'admin') return reply.status(403).send({ error: { code: 'FORBIDDEN', message: 'Admin only' } });
     const { email, password, displayName } = req.body;
-    if (!email || !password || !displayName) return reply.status(400).send({ error: 'email, password, displayName required' });
+    if (!email || !password || !displayName) return reply.status(400).send({ error: { code: 'BAD_REQUEST', message: 'email, password, displayName required' } });
     const hash = await bcrypt.hash(password, 10);
     const [newUser] = await db('user').insert({ email, display_name: displayName, password_hash: hash, auth_provider: 'local' }).returning('*');
     reply.status(201);
@@ -168,9 +168,9 @@ async function start() {
 
   app.put('/api/users/:id/password', async (req, reply) => {
     const user = getSession(req);
-    if (!user || user.role !== 'admin') return reply.status(403).send({ error: 'Admin only' });
+    if (!user || user.role !== 'admin') return reply.status(403).send({ error: { code: 'FORBIDDEN', message: 'Admin only' } });
     const { newPassword } = req.body;
-    if (!newPassword) return reply.status(400).send({ error: 'newPassword required' });
+    if (!newPassword) return reply.status(400).send({ error: { code: 'BAD_REQUEST', message: 'newPassword required' } });
     const hash = await bcrypt.hash(newPassword, 10);
     await db('user').where('id', req.params.id).update({ password_hash: hash });
     return { ok: true };
@@ -286,10 +286,10 @@ async function start() {
   app.post('/api/baselines', async (req, reply) => {
     const session = getSession(req);
     if (!session) {
-      return reply.status(401).send({ error: 'Not authenticated' });
+      return reply.status(401).send({ error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } });
     }
     if (!hasPermission(session, 'baselines', 'create')) {
-      return reply.status(403).send({ error: 'Only admin users can create baselines' });
+      return reply.status(403).send({ error: { code: 'FORBIDDEN', message: 'Only admin users can create baselines' } });
     }
     const v = validate(schemas.CreateBaselineSchema, req.body); if (!v.ok) return reply.status(422).send(v.error);
     const b = v.data;
@@ -346,7 +346,7 @@ async function start() {
 
   app.get('/api/baselines/:id', async (req) => {
     const baseline = await db('baseline').where('id', req.params.id).first();
-    if (!baseline) return { error: 'Not found' };
+    if (!baseline) return { error: { code: 'NOT_FOUND', message: 'Not found' } };
     const snap = await db('baseline_hierarchy_snapshot').where('baseline_id', baseline.id).first();
     return { ...baseline, snapshot: snap?.snapshot_data || null, hierarchy: snap ? { systems: snap.systems_count, connections: snap.connections_count, messages: snap.messages_count, parameters: snap.parameters_count } : null };
   });
@@ -354,7 +354,7 @@ async function start() {
   app.post('/api/baselines/:id/compare', async (req) => {
     const baselineA = await db('baseline_hierarchy_snapshot').where('baseline_id', req.params.id).first();
     const baselineB = req.body.compareToId ? await db('baseline_hierarchy_snapshot').where('baseline_id', req.body.compareToId).first() : null;
-    if (!baselineA) return { error: 'Baseline A not found' };
+    if (!baselineA) return { error: { code: 'NOT_FOUND', message: 'Baseline A not found' } };
 
     const a = baselineA.snapshot_data || {};
     const b = baselineB?.snapshot_data || { systems: [], connections: [], messages: [], parameters: [] };
@@ -371,10 +371,10 @@ async function start() {
   app.delete('/api/baselines/:id', async (req, reply) => {
     const session = getSession(req);
     if (!session) {
-      return reply.status(401).send({ error: 'Not authenticated' });
+      return reply.status(401).send({ error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } });
     }
     if (!hasPermission(session, 'baselines', 'delete')) {
-      return reply.status(403).send({ error: 'Only admin users can delete baselines' });
+      return reply.status(403).send({ error: { code: 'FORBIDDEN', message: 'Only admin users can delete baselines' } });
     }
     await db('baseline').where('id', req.params.id).del();
     reply.status(204).send();
@@ -410,18 +410,18 @@ async function start() {
   app.put('/api/workflows/:id/approve', async (req, reply) => {
     const session = getSession(req);
     if (!session) {
-      return reply.status(401).send({ error: 'Not authenticated' });
+      return reply.status(401).send({ error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } });
     }
     if (session.role !== 'admin' && session.role !== 'reviewer') {
-      return reply.status(403).send({ error: 'Only admin or reviewer users can approve changes' });
+      return reply.status(403).send({ error: { code: 'FORBIDDEN', message: 'Only admin or reviewer users can approve changes' } });
     }
     // Independence check: creator ≠ approver (ARP 4754B §5.4)
     const cr = await db('change_request').where('id', req.params.id).first();
     if (!cr) {
-      return reply.status(404).send({ error: 'Change request not found' });
+      return reply.status(404).send({ error: { code: 'NOT_FOUND', message: 'Change request not found' } });
     }
     if (cr.submitted_by === session.userId) {
-      return reply.status(403).send({ error: 'Independence violation: the creator of this change request cannot also approve it (ARP 4754B §5.4)' });
+      return reply.status(403).send({ error: { code: 'FORBIDDEN', message: 'Independence violation: the creator of this change request cannot also approve it (ARP 4754B §5.4)' } });
     }
     const [updated] = await db('change_request').where('id', req.params.id).update({
       status: 'approved',
@@ -443,10 +443,10 @@ async function start() {
   app.put('/api/workflows/:id/reject', async (req, reply) => {
     const session = getSession(req);
     if (!session) {
-      return reply.status(401).send({ error: 'Not authenticated' });
+      return reply.status(401).send({ error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } });
     }
     if (session.role !== 'admin') {
-      return reply.status(403).send({ error: 'Only admin users can reject changes' });
+      return reply.status(403).send({ error: { code: 'FORBIDDEN', message: 'Only admin users can reject changes' } });
     }
     const [cr] = await db('change_request').where('id', req.params.id).update({
       status: 'rejected',
@@ -563,7 +563,7 @@ async function start() {
 
   app.get('/api/systems/:id', async (req) => {
     const sys = await db('system').where('id', req.params.id).first();
-    if (!sys) return { error: 'Not found' };
+    if (!sys) return { error: { code: 'NOT_FOUND', message: 'Not found' } };
     const ports = await db('system_port').leftJoin('protocol_definition', 'system_port.protocol_id', 'protocol_definition.id').where('system_port.system_id', sys.id).select('system_port.*', 'protocol_definition.protocol_name');
     const functions = await db('system_function').where('system_id', sys.id);
     return { ...sys, ports, functions };
@@ -709,7 +709,7 @@ async function start() {
   app.post('/api/parse/excel', async (req, reply) => {
     const ExcelJS = require('exceljs');
     const data = req.body;
-    if (!data.base64) return reply.status(400).send({ error: 'Missing base64 file data' });
+    if (!data.base64) return reply.status(400).send({ error: { code: 'BAD_REQUEST', message: 'Missing base64 file data' } });
 
     const buf = Buffer.from(data.base64, 'base64');
     const wb = new ExcelJS.Workbook();
@@ -794,7 +794,7 @@ async function start() {
   // Confirm extraction — create hierarchy from AI-extracted data
   app.post('/api/parse-jobs/:id/confirm-hierarchy', async (req, reply) => {
     const job = await db('parse_job').where('id', req.params.id).first();
-    if (!job) return reply.status(404).send({ error: 'Job not found' });
+    if (!job) return reply.status(404).send({ error: { code: 'NOT_FOUND', message: 'Job not found' } });
     const extracted = await db('extracted_signal').where('parse_job_id', req.params.id);
     const projectId = req.body.projectId || (await db('project').first('id')).id;
 
@@ -903,7 +903,7 @@ async function start() {
   app.post('/api/parse/ai-extract', async (req, reply) => {
     const ExcelJS = require('exceljs');
     const data = req.body;
-    if (!data.base64) return reply.status(400).send({ error: 'Missing base64 file data' });
+    if (!data.base64) return reply.status(400).send({ error: { code: 'BAD_REQUEST', message: 'Missing base64 file data' } });
 
     const buf = Buffer.from(data.base64, 'base64');
     const wb = new ExcelJS.Workbook();
@@ -978,7 +978,7 @@ ${sheetsText}`;
 
       return { jobId: job.id, extracted, stats: { total: extracted.length, sheets: sheets.length, highConfidence: job.high_confidence_count, lowConfidence: job.low_confidence_count } };
     } catch (e) {
-      return reply.status(500).send({ error: 'AI extraction failed: ' + e.message });
+      return reply.status(500).send({ error: { code: 'INTERNAL_ERROR', message: 'AI extraction failed: ' + e.message } });
     }
   });
 
@@ -994,7 +994,7 @@ ${sheetsText}`;
   // Confirm extraction — create real signals/parameters from extracted data
   app.post('/api/parse-jobs/:id/confirm', async (req, reply) => {
     const job = await db('parse_job').where('id', req.params.id).first();
-    if (!job) return reply.status(404).send({ error: 'Job not found' });
+    if (!job) return reply.status(404).send({ error: { code: 'NOT_FOUND', message: 'Job not found' } });
     const signals = await db('extracted_signal').where('parse_job_id', req.params.id);
     const projectId = req.body.projectId || (await db('project').first('id')).id;
     let created = 0;
@@ -1133,13 +1133,13 @@ ${sheetsText}`;
       const analysis = await callGemini(prompts[analysisType] || prompts.general);
       return { type: analysisType, project: project.name, analysis, timestamp: new Date().toISOString() };
     } catch (e) {
-      return reply.status(500).send({ error: 'AI analysis failed: ' + e.message });
+      return reply.status(500).send({ error: { code: 'INTERNAL_ERROR', message: 'AI analysis failed: ' + e.message } });
     }
   });
 
   app.post('/api/ai/chat', async (req, reply) => {
     const { message, projectId } = req.body;
-    if (!message) return reply.status(400).send({ error: 'Missing message' });
+    if (!message) return reply.status(400).send({ error: { code: 'BAD_REQUEST', message: 'Missing message' } });
 
     const pid = projectId || (await db('project').first('id'))?.id;
     let context = '';
@@ -1153,7 +1153,7 @@ ${sheetsText}`;
       const response = await callGemini(`You are an aerospace ICD expert assistant for ConnectedICD. ${context}\n\nUser question: ${message}\n\nProvide a helpful, technically accurate response.`);
       return { response, timestamp: new Date().toISOString() };
     } catch (e) {
-      return reply.status(500).send({ error: 'AI chat failed: ' + e.message });
+      return reply.status(500).send({ error: { code: 'INTERNAL_ERROR', message: 'AI chat failed: ' + e.message } });
     }
   });
 
@@ -1205,7 +1205,7 @@ ${sheetsText}`;
 
   app.post('/api/ai/troubleshoot', async (req, reply) => {
     const { question, projectId } = req.body;
-    if (!question) return reply.status(400).send({ error: 'Question required' });
+    if (!question) return reply.status(400).send({ error: { code: 'BAD_REQUEST', message: 'Question required' } });
     const pid = projectId || (await db('project').first('id'))?.id;
     const project = await db('project').where('id', pid).first();
     const systems = await db('system').where('project_id', pid);
@@ -1227,7 +1227,7 @@ ${sheetsText}`;
     try {
       const response = await callGemini(`You are an expert aerospace ICD troubleshooting agent. You have deep access to the project data.\n\nRoles: diagnose ICD issues, suggest specific fixes with parameter names/bit positions, reference ARINC specs, flag safety implications, recommend architecture improvements.\n\nProject data:\n${context}\n\nQuestion: ${question}\n\nProvide specific, actionable answers referencing actual data above.`);
       return { answer: response, context_used: { systems: systems.length, connections: connections.length } };
-    } catch (e) { return reply.status(500).send({ error: 'AI failed: ' + e.message }); }
+    } catch (e) { return reply.status(500).send({ error: { code: 'INTERNAL_ERROR', message: 'AI failed: ' + e.message } }); }
   });
 
   // ICD Export (Simulink .m script — generates bus objects and signal definitions)
@@ -1319,10 +1319,10 @@ ${sheetsText}`;
 
     // Find all A825/CAN connections
     const a825Proto = await db('protocol_definition').whereRaw("LOWER(protocol_name) LIKE '%825%' OR LOWER(protocol_name) LIKE '%can%'").first();
-    if (!a825Proto) return reply.status(404).send({ error: 'No ARINC 825/CAN protocol defined' });
+    if (!a825Proto) return reply.status(404).send({ error: { code: 'NOT_FOUND', message: 'No ARINC 825/CAN protocol defined' } });
 
     const connections = await db('connection').where({ project_id: projectId, protocol_id: a825Proto.id });
-    if (!connections.length) return reply.status(404).send({ error: 'No CAN/A825 connections in this project' });
+    if (!connections.length) return reply.status(404).send({ error: { code: 'NOT_FOUND', message: 'No CAN/A825 connections in this project' } });
 
     // Build DBC content
     let dbc = '';
@@ -1543,9 +1543,9 @@ ${sheetsText}`;
 
   app.post('/api/live/start', async (req, reply) => {
     const { adapterId, projectId, connectionId } = req.body;
-    if (!adapterId) return reply.status(400).send({ error: 'adapterId required' });
+    if (!adapterId) return reply.status(400).send({ error: { code: 'BAD_REQUEST', message: 'adapterId required' } });
     if (adapterId.startsWith('can:') && !/^can:[a-zA-Z0-9_-]{1,16}$/.test(adapterId)) {
-      return reply.status(400).send({ error: 'Invalid CAN adapter id format' });
+      return reply.status(400).send({ error: { code: 'BAD_REQUEST', message: 'Invalid CAN adapter id format' } });
     }
 
     const pid = projectId || (await db('project').first('id'))?.id;
@@ -1616,14 +1616,14 @@ ${sheetsText}`;
 
   app.get('/api/live/session/:id', async (req) => {
     const session = liveSessions.get(req.params.id);
-    if (!session) return { error: 'Session not found' };
+    if (!session) return { error: { code: 'NOT_FOUND', message: 'Session not found' } };
     return { sessionId: req.params.id, adapterId: session.adapterId, parameterCount: session.params.length, readingCount: session.readings.length, startedAt: session.startedAt };
   });
 
   // Get simulated live readings for a session
   app.get('/api/live/session/:id/readings', async (req) => {
     const session = liveSessions.get(req.params.id);
-    if (!session) return { error: 'Session not found' };
+    if (!session) return { error: { code: 'NOT_FOUND', message: 'Session not found' } };
 
     // Real hardware — return captured and decoded readings
     if (session.isRealHardware) {
@@ -1671,7 +1671,7 @@ ${sheetsText}`;
   app.post('/api/live/stop', async (req) => {
     const { sessionId } = req.body;
     const session = liveSessions.get(sessionId);
-    if (!session) return { error: 'Session not found' };
+    if (!session) return { error: { code: 'NOT_FOUND', message: 'Session not found' } };
     if (session.canAdapter) session.canAdapter.stop();
     const readingCount = session.readings.length;
     liveSessions.delete(sessionId);
@@ -1682,7 +1682,7 @@ ${sheetsText}`;
   app.post('/api/live/send', async (req, reply) => {
     const { sessionId, canId, data } = req.body;
     const session = liveSessions.get(sessionId);
-    if (!session?.canAdapter) return reply.status(400).send({ error: 'No active hardware session' });
+    if (!session?.canAdapter) return reply.status(400).send({ error: { code: 'BAD_REQUEST', message: 'No active hardware session' } });
     try {
       const result = await session.canAdapter.send(canId, data);
       return result;
@@ -1706,7 +1706,7 @@ ${sheetsText}`;
 
   app.post('/api/hw-templates', async (req, reply) => {
     const b = req.body;
-    if (!b.name) return reply.status(400).send({ error: 'Name required' });
+    if (!b.name) return reply.status(400).send({ error: { code: 'BAD_REQUEST', message: 'Name required' } });
     const [tmpl] = await db('hw_icd_template').insert({ name: b.name, manufacturer: b.manufacturer || '', part_number: b.part_number || '', description: b.description || '', system_type: b.system_type || 'lru', ata_chapter: b.ata_chapter || '' }).returning('*');
     // Create template ports
     if (b.ports) for (const p of b.ports) { await db('hw_icd_template_port').insert({ template_id: tmpl.id, name: p.name, protocol_id: p.protocol_id || null, direction: p.direction || 'tx', connector_label: p.connector_label || '' }); }
@@ -1717,7 +1717,7 @@ ${sheetsText}`;
 
   app.get('/api/hw-templates/:id', async (req) => {
     const tmpl = await db('hw_icd_template').where('id', req.params.id).first();
-    if (!tmpl) return { error: 'Not found' };
+    if (!tmpl) return { error: { code: 'NOT_FOUND', message: 'Not found' } };
     const ports = await db('hw_icd_template_port').leftJoin('protocol_definition', 'hw_icd_template_port.protocol_id', 'protocol_definition.id').where('template_id', tmpl.id).select('hw_icd_template_port.*', 'protocol_definition.protocol_name');
     const functions = await db('hw_icd_template_function').where('template_id', tmpl.id);
     return { ...tmpl, ports, functions };
@@ -1731,7 +1731,7 @@ ${sheetsText}`;
   // Instantiate template into a project as a new system
   app.post('/api/hw-templates/:id/instantiate', async (req, reply) => {
     const tmpl = await db('hw_icd_template').where('id', req.params.id).first();
-    if (!tmpl) return reply.status(404).send({ error: 'Template not found' });
+    if (!tmpl) return reply.status(404).send({ error: { code: 'NOT_FOUND', message: 'Template not found' } });
     const projectId = req.body.project_id || (await db('project').first('id'))?.id;
     const systemName = req.body.name || tmpl.name;
 
@@ -1781,7 +1781,7 @@ ${sheetsText}`;
         partition_type: b.partition_type || 'application',
       }).returning('*');
       reply.status(201); return part;
-    } catch (e) { return reply.status(409).send({ error: 'Partition ID already exists on this system' }); }
+    } catch (e) { return reply.status(409).send({ error: { code: 'ERROR', message: 'Partition ID already exists on this system' } }); }
   });
 
   app.delete('/api/partitions/:id', async (req, reply) => {
@@ -1927,20 +1927,20 @@ ${sheetsText}`;
   app.post('/api/artifacts/get', async (req) => {
     const { artifactId, projectId } = req.body || {};
     const pid = projectId || (await db('project').first('id'))?.id;
-    if (!pid || !artifactId) return { error: 'artifactId and projectId required' };
+    if (!pid || !artifactId) return { error: { code: 'NOT_FOUND', message: 'artifactId and projectId required' } };
     const artifacts = await buildConnectedFlowArtifacts(pid);
     const artifact = artifacts.find(a => a.id === artifactId);
-    if (!artifact) return { error: 'Artifact not found' };
+    if (!artifact) return { error: { code: 'NOT_FOUND', message: 'Artifact not found' } };
     return { artifact };
   });
 
   app.post('/api/artifacts/export', async (req) => {
     const { artifactId, format, projectId } = req.body || {};
     const pid = projectId || (await db('project').first('id'))?.id;
-    if (!pid || !artifactId) return { error: 'artifactId, format, and projectId required' };
+    if (!pid || !artifactId) return { error: { code: 'NOT_FOUND', message: 'artifactId, format, and projectId required' } };
     const artifacts = await buildConnectedFlowArtifacts(pid);
     const artifact = artifacts.find(a => a.id === artifactId);
-    if (!artifact) return { error: 'Artifact not found' };
+    if (!artifact) return { error: { code: 'NOT_FOUND', message: 'Artifact not found' } };
     // For now, return JSON content directly
     return { artifact, format: format || 'json', exportedAt: new Date().toISOString() };
   });
@@ -1954,7 +1954,7 @@ ${sheetsText}`;
   // digitalThread.trace — trace requirement → interface → signal → test
   app.get('/api/digital-thread/trace/:signalId', async (req) => {
     const sig = await db('signal').where('id', req.params.signalId).first();
-    if (!sig) return { error: 'Signal not found' };
+    if (!sig) return { error: { code: 'NOT_FOUND', message: 'Signal not found' } };
     const logical = await db('logical_layer').where('signal_id', sig.id).first();
     const transport = await db('transport_layer').where('signal_id', sig.id).first();
     const physical = await db('physical_layer').where('signal_id', sig.id).first();
@@ -1978,7 +1978,7 @@ ${sheetsText}`;
   // digitalThread.impact — when interface changes, show all affected items
   app.get('/api/digital-thread/impact/:signalId', async (req) => {
     const sig = await db('signal').where('id', req.params.signalId).first();
-    if (!sig) return { error: 'Signal not found' };
+    if (!sig) return { error: { code: 'NOT_FOUND', message: 'Signal not found' } };
     const logical = await db('logical_layer').where('signal_id', sig.id).first();
     const affected = { requirements: [], systems: [], connections: [], signals: [] };
 
@@ -2188,7 +2188,7 @@ ${sheetsText}`;
   // Shared component registry — get signal with failure rate data for SafetyNow
   app.get('/api/integration/component-registry/:signalId', async (req) => {
     const sig = await db('signal').where('id', req.params.signalId).first();
-    if (!sig) return { error: 'Signal not found' };
+    if (!sig) return { error: { code: 'NOT_FOUND', message: 'Signal not found' } };
     const logical = await db('logical_layer').where('signal_id', sig.id).first();
     const transport = await db('transport_layer').where('signal_id', sig.id).first();
     const traces = await db('trace_link').where('signal_id', sig.id);
