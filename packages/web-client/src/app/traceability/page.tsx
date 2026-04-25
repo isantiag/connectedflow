@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useProject } from '@/lib/project-context';
-import { api } from '@/lib/api-client';  // TODO: migrate to TanStack Query hooks
+import { useTraceLinks } from '@/lib/queries';
+import { useQueryClient } from '@tanstack/react-query';
 import { Link2, RefreshCw, AlertTriangle, Download, ExternalLink } from 'lucide-react';
 import { Header } from '@/components/layout/header';
 import { Button } from '@/components/ui/button';
@@ -21,23 +22,16 @@ interface TraceLink {
 }
 
 export default function TraceabilityPage() {
-  const [links, setLinks] = useState<TraceLink[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { data: linksData, isLoading: loading } = useTraceLinks();
+  const links: TraceLink[] = (linksData as any)?.data ?? linksData ?? [];
   const [syncing, setSyncing] = useState(false);
-
-  useEffect(() => {
-    api
-      .get<{ data: TraceLink[] }>('/trace-links')
-      .then((res) => setLinks(res.data))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
 
   const handleSync = async () => {
     setSyncing(true);
     try {
-      const res = await api.post<{ data: TraceLink[] }>('trace-links/sync');
-      setLinks(res.data);
+      await api.post<{ data: TraceLink[] }>('trace-links/sync');
+      queryClient.invalidateQueries({ queryKey: ['trace-links'] });
     } catch {
       // handle error
     } finally {

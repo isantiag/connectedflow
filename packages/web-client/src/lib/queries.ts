@@ -19,6 +19,10 @@ export function useSystemConnections(id?: string) {
   return useQuery({ queryKey: ['system-connections', id], queryFn: () => api.get<any[]>(`systems/${id}/connections`), enabled: !!id });
 }
 
+export function useAllSystems() {
+  return useQuery({ queryKey: ['systems'], queryFn: () => api.get<any[]>('systems') });
+}
+
 export function useSystemPartitions(id?: string) {
   return useQuery({ queryKey: ['system-partitions', id], queryFn: () => api.get<any[]>(`systems/${id}/partitions`), enabled: !!id });
 }
@@ -102,6 +106,11 @@ export function useLiveAdapters() {
 // === Parse Jobs ===
 export function useParseJobs() {
   return useQuery({ queryKey: ['parse-jobs'], queryFn: () => api.get<any[]>('parse-jobs') });
+}
+
+// === Trace Links ===
+export function useTraceLinks() {
+  return useQuery({ queryKey: ['trace-links'], queryFn: () => api.get<any>('trace-links') });
 }
 
 // === Users ===

@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import { Plus, Trash2, Pencil, Check, X } from 'lucide-react';
 import { Header } from '@/components/layout/header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useMessageParameters, useMessage, useProtocols } from '@/lib/queries';
+import { useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api-client';
 
 interface Param { id: string; name: string; bit_offset: number; bit_length: number; encoding: string; units: string; min_value: number | null; max_value: number | null; resolution: number | null; ssm_convention: string | null; function_name: string | null; protocol_attrs: Record<string, unknown>; criticality: string; }
@@ -15,24 +16,18 @@ interface MessageDetail { id: string; name: string; message_id_primary: string; 
 
 export default function MessageParametersPage() {
   const { id } = useParams<{ id: string }>();
-  const [params, setParams] = useState<Param[]>([]);
-  const [protocols, setProtocols] = useState<Protocol[]>([]);
-  const [msg, setMsg] = useState<MessageDetail | null>(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { data: params = [], isLoading: loading } = useMessageParameters(id) as { data: Param[]; isLoading: boolean };
+  const { data: protocols = [] } = useProtocols() as { data: Protocol[] };
+  const { data: msg = null } = useMessage(id) as { data: MessageDetail | null };
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState({ name: '', bit_offset: '', bit_length: '', encoding: 'BNR', units: '', min_value: '', max_value: '', resolution: '', ssm_convention: '', protocol_attrs: {} as Record<string, string> });
 
   const reload = () => {
-    if (!id) return;
-    Promise.all([
-      api.get<Param[]>(`messages/${id}/parameters`),
-      api.get<Protocol[]>('protocols'),
-      api.get<MessageDetail>(`messages/${id}`).catch(() => null),
-    ]).then(([p, protos, m]) => { setParams(p); setProtocols(protos); if (m) setMsg(m); })
-      .catch(() => {}).finally(() => setLoading(false));
+    queryClient.invalidateQueries({ queryKey: ['message-parameters', id] });
+    queryClient.invalidateQueries({ queryKey: ['message', id] });
   };
-  useEffect(reload, [id]);
 
   const proto = protocols.find(p => p.id === msg?.protocol_id);
   const dynamicCols = proto?.field_schema?.parameter_fields || [];

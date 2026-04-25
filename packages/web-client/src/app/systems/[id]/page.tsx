@@ -7,7 +7,8 @@ import { Header } from '@/components/layout/header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ConnectionDiagram } from '@/components/connection-diagram';
-import { useSystem, useSystemConnections, useSystemPartitions, useProtocols } from '@/lib/queries';
+import { useSystem, useSystemConnections, useSystemPartitions, useProtocols, useAllSystems } from '@/lib/queries';
+import { useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api-client';
 
 interface Port { id: string; name: string; protocol_name: string; protocol_id: string; direction: string; connector_label: string; }
@@ -21,10 +22,13 @@ interface Partition { id: string; partition_id: string; name: string; descriptio
 
 export default function SystemDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const [sys, setSys] = useState<SystemDetail | null>(null);
-  const [conns, setConns] = useState<ConnSummary[]>([]);
-  const [protocols, setProtocols] = useState<Protocol[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { data: sys } = useSystem(id) as { data: SystemDetail | undefined };
+  const { data: conns = [] } = useSystemConnections(id) as { data: ConnSummary[] };
+  const { data: protocols = [] } = useProtocols() as { data: Protocol[] };
+  const { data: allSystemsRaw = [] } = useAllSystems() as { data: SystemListItem[] };
+  const { data: partitions = [] } = useSystemPartitions(id) as { data: Partition[] };
+  const allSystems = allSystemsRaw.filter(x => x.id !== id);
   const [portForm, setPortForm] = useState({ name: '', protocol_id: '', direction: 'tx', connector_label: '' });
   const [fnForm, setFnForm] = useState({ name: '', criticality: 'major', dal: '' });
   const [showPortForm, setShowPortForm] = useState(false);
@@ -32,25 +36,17 @@ export default function SystemDetailPage() {
   const [editPortId, setEditPortId] = useState<string | null>(null);
   const [editFnId, setEditFnId] = useState<string | null>(null);
   const [showConnForm, setShowConnForm] = useState(false);
-  const [allSystems, setAllSystems] = useState<SystemListItem[]>([]);
   const [remotePorts, setRemotePorts] = useState<RemotePort[]>([]);
-  const [partitions, setPartitions] = useState<Partition[]>([]);
   const [showPartForm, setShowPartForm] = useState(false);
   const [partForm, setPartForm] = useState({ partition_id: '', name: '', scheduling_period_ms: '', scheduling_duration_ms: '', memory_bytes: '', criticality: 'major', dal: '', partition_type: 'application' });
   const [connForm, setConnForm] = useState({ remoteSysId: '', localPortId: '', remotePortId: '', protocolId: '', name: '' });
 
   const reload = () => {
-    if (!id) return;
-    Promise.all([
-      api.get<SystemDetail>(`systems/${id}`),
-      api.get<ConnSummary[]>(`systems/${id}/connections`),
-      api.get<Protocol[]>('protocols'),
-      api.get<SystemListItem[]>('systems'),
-      api.get<Partition[]>(`systems/${id}/partitions`).catch(() => []),
-    ]).then(([s, c, p, allSys, parts]) => { setSys(s); setConns(c); setProtocols(p); setAllSystems(allSys.filter(x => x.id !== id)); setPartitions(parts); }).catch(() => {}).finally(() => setLoading(false));
+    queryClient.invalidateQueries({ queryKey: ['system', id] });
+    queryClient.invalidateQueries({ queryKey: ['system-connections', id] });
+    queryClient.invalidateQueries({ queryKey: ['system-partitions', id] });
+    queryClient.invalidateQueries({ queryKey: ['systems'] });
   };
-
-  useEffect(reload, [id]);
 
   // When remote system changes, fetch its ports
   useEffect(() => {
@@ -158,8 +154,7 @@ export default function SystemDetailPage() {
     reload();
   };
 
-  if (loading) return <div className="p-8 text-muted-foreground">Loading…</div>;
-  if (!sys) return <div className="p-8 text-muted-foreground">System not found</div>;
+  if (!sys) return <div className="p-8 text-muted-foreground">Loading…</div>;
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">

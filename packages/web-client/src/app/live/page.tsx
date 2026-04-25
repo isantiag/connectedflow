@@ -18,7 +18,7 @@ const GRAPH_COLORS = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#e
 
 export default function LiveDataPage() {
   const { currentProject } = useProject();
-  const [adapters, setAdapters] = useState<Adapter[]>([]);
+  const { data: adapters = [] } = useLiveAdapters();
   const [selectedAdapter, setSelectedAdapter] = useState('');
   const [session, setSession] = useState<Session | null>(null);
   const [readings, setReadings] = useState<Reading[]>([]);
@@ -29,8 +29,6 @@ export default function LiveDataPage() {
   const [isRecording, setIsRecording] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => { api.get<Adapter[]>('live/adapters').then(setAdapters).catch(() => {}); }, []);
 
   const start = async () => {
     if (!selectedAdapter) return;

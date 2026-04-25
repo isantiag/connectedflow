@@ -1,11 +1,13 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Upload, FileText, CheckCircle2, XCircle, Clock, Eye } from 'lucide-react';
 import { Header } from '@/components/layout/header';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useParseJobs } from '@/lib/queries';
+import { useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api-client';
 
 interface ParseJob {
@@ -33,23 +35,17 @@ const statusConfig: Record<string, { variant: 'default' | 'secondary' | 'warning
 };
 
 export default function DocumentsPage() {
-  const [jobs, setJobs] = useState<ParseJob[]>([]);
+  const queryClient = useQueryClient();
+  const { data: jobsData, isLoading: loading } = useParseJobs();
+  const jobs: ParseJob[] = (jobsData as any)?.data ?? jobsData ?? [];
   const [selectedJob, setSelectedJob] = useState<string | null>(null);
   const [extractions, setExtractions] = useState<ExtractedSignal[]>([]);
   const [dragOver, setDragOver] = useState(false);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    api.get<{ data: ParseJob[] }>('parse-jobs')
-      .then((res) => setJobs(res.data))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
 
   const handleUpload = useCallback(async (file: File) => {
-    const job = await api.post<ParseJob>('parse-jobs', { fileName: file.name });
-    setJobs((prev) => [job, ...prev]);
-  }, []);
+    await api.post<ParseJob>('parse-jobs', { fileName: file.name });
+    queryClient.invalidateQueries({ queryKey: ['parse-jobs'] });
+  }, [queryClient]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -66,7 +62,7 @@ export default function DocumentsPage() {
 
   const confirmExtraction = async (jobId: string) => {
     await api.post(`/parse-jobs/${jobId}/confirm`);
-    setJobs((prev) => prev.map((j) => j.id === jobId ? { ...j, status: 'confirmed' as const } : j));
+    queryClient.invalidateQueries({ queryKey: ['parse-jobs'] });
     setSelectedJob(null);
   };
 

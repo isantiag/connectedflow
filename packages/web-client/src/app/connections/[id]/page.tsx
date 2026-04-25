@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import { Plus, Trash2, Pencil } from 'lucide-react';
 import { Header } from '@/components/layout/header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useConnectionMessages, useConnection, useProtocols } from '@/lib/queries';
+import { useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api-client';
 
 interface Message { id: string; message_id_primary: string; message_id_secondary: string | null; name: string; refresh_rate_hz: number | null; protocol_attrs: Record<string, unknown>; parameter_count: number; }
@@ -15,24 +16,18 @@ interface Connection { id: string; name: string; protocol_id: string; }
 
 export default function ConnectionMessagesPage() {
   const { id } = useParams<{ id: string }>();
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [protocols, setProtocols] = useState<Protocol[]>([]);
-  const [conn, setConn] = useState<Connection | null>(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { data: messages = [], isLoading: loading } = useConnectionMessages(id) as { data: Message[]; isLoading: boolean };
+  const { data: protocols = [] } = useProtocols() as { data: Protocol[] };
+  const { data: conn = null } = useConnection(id) as { data: Connection | null };
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState({ message_id_primary: '', message_id_secondary: '', name: '', refresh_rate_hz: '', protocol_attrs: {} as Record<string, string> });
 
   const reload = () => {
-    if (!id) return;
-    Promise.all([
-      api.get<Message[]>(`connections/${id}/messages`),
-      api.get<Protocol[]>('protocols'),
-      api.get<Connection>(`connections/${id}`).catch(() => null),
-    ]).then(([msgs, protos, c]) => { setMessages(msgs); setProtocols(protos); if (c) setConn(c); })
-      .catch(() => {}).finally(() => setLoading(false));
+    queryClient.invalidateQueries({ queryKey: ['connection-messages', id] });
+    queryClient.invalidateQueries({ queryKey: ['connection', id] });
   };
-  useEffect(reload, [id]);
 
   const proto = protocols.find(p => p.id === conn?.protocol_id);
   const dynamicCols = proto?.field_schema?.message_fields || [];
