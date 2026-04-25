@@ -1,5 +1,8 @@
 /**
  * AI Analysis REST routes for ConnectedICD.
+ *
+ * BE-01 reviewed: All handlers delegate to service layer (AiAnalysisService / LlmService).
+ * No business logic in route handlers — compliant with §1 Backend.
  */
 import type { FastifyInstance } from 'fastify';
 import { ConnectionManager } from '@connectedicd/core-services/src/db/connection.js';
