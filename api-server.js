@@ -6,6 +6,7 @@
 try { require('dotenv').config(); } catch { /* dotenv optional */ }
 const Fastify = require('fastify');
 const cors = require('@fastify/cors');
+const rateLimit = require('@fastify/rate-limit');
 const knex = require('knex');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
@@ -32,6 +33,7 @@ function validate(schema, data) {
 async function start() {
   const app = Fastify();
   await app.register(cors, { origin: true });
+  await app.register(rateLimit, { max: 100, timeWindow: '1 minute' });
 
   // §11 audit: limit request body size to 10MB
   app.addContentTypeParser('application/json', { bodyLimit: 10 * 1024 * 1024 }, app.getDefaultJsonParser('remove', 'remove'));

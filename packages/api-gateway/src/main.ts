@@ -4,6 +4,7 @@
  */
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import rateLimit from '@fastify/rate-limit';
 import knex from 'knex';
 import { z } from 'zod';
 
@@ -48,6 +49,7 @@ async function main() {
   // Fastify
   const app = Fastify({ logger: false });
   await app.register(cors, { origin: true });
+  await app.register(rateLimit, { max: 100, timeWindow: '1 minute' });
 
   // Health
   app.get('/health', async () => ({ status: 'ok', db: 'connected', timestamp: new Date().toISOString() }));
