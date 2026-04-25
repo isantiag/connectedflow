@@ -1,5 +1,5 @@
 /**
- * ConnectedICD — REST API client with JWT auto-attach.
+ * ConnectedICD — REST API client with HttpOnly cookie auth (§11/§13).
  */
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4001/api/';
@@ -20,20 +20,15 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     ...(extraHeaders as Record<string, string>),
   };
 
-  // Auto-attach JWT from localStorage
-  if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('connectedICD_token');
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-  }
+  const res = await fetch(url.toString(), {
+    ...rest, headers, credentials: 'include',
+    body: body != null ? JSON.stringify(body) : undefined,
+    signal: AbortSignal.timeout(10000),
+  });
 
-  const res = await fetch(url.toString(), { ...rest, headers, body: body != null ? JSON.stringify(body) : undefined, signal: AbortSignal.timeout(10000) });
-
-  if (res.status === 401) {
-    // Token expired or invalid — clear and redirect to login
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('connectedICD_token');
-      window.location.reload();
-    }
+  if (res.status === 401 && typeof window !== 'undefined') {
+    window.location.href = '/login?returnTo=' + encodeURIComponent(window.location.pathname);
+    throw new Error('Session expired');
   }
 
   if (!res.ok) {
