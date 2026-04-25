@@ -218,3 +218,16 @@ Domain-constraint enforcement for AI-generated ICD content:
 - **Naming conventions**: Enforce signal naming standards
 - **Configurable**: Admin-editable rule sets without code changes
 - **Gate**: Constitutional review runs before AI content enters baseline
+
+### AGI Self-Play Engine (`packages/ai-services/src/agi-connectedicd.ts`)
+
+Generate-evaluate-select loop for ICD generation, inspired by AlphaEvolve + Voyager.
+
+**Core loop**: generate ICD → evaluate with independent reviewer → improve or store as exemplar
+
+**ConnectedICD wiring**:
+- `toolGenerateICD(context, llmCall)` — runs full self-play loop for ICD generation
+- `toolScoreICD(artifact, context)` — returns evaluation prompt and dimensions
+- In-memory skill library with retrieve/store (Voyager pattern)
+
+**CONNECTED_ICD_CONFIG dimensions**: signal_coverage, type_consistency, owner_assignment, change_impact, bidirectional_trace (threshold: 400/500)

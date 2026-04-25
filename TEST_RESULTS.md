@@ -9,7 +9,7 @@
 | | |
 |---|---|
 | **Total test files** | 25 passed, 2 skipped (no tests) |
-| **Total tests** | **568 passed**, 0 failed |
+| **Total tests** | **572 passed**, 0 failed |
 | **Packages with tests** | 5 of 7 |
 | **Status** | ✅ All passing |
 
@@ -63,13 +63,13 @@ Covers:
 - Ingestion: mode selector, file upload, AI/pattern modes
 - Component interaction and API call verification
 
-### packages/ai-services — 48 tests (3 files)
+### packages/ai-services — 52 tests (4 files)
 
-Document parsing, AI extraction, anomaly detection.
+Document parsing, AI extraction, anomaly detection, AGI self-play engine.
 
 ```
- Test Files  3 passed (3)
-      Tests  48 passed (48)
+ Test Files  4 passed (4)
+      Tests  52 passed (52)
    Duration  559ms
 ```
 
@@ -79,6 +79,7 @@ Covers:
 - Low-confidence signal flagging
 - Extraction confirmation with error handling
 - Parsing report statistics
+- AGI self-play: convergence, iteration, score parsing, MCP tools
 
 ### packages/api-gateway — 28 tests (2 files)
 

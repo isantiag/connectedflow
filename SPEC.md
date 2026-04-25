@@ -177,3 +177,38 @@ AI-native interface control document management for digital engineering and MBSE
 | AGI — RLVR Scoring | 3 | 0 | 3 |
 | AGI — Constitutional Review | 3 | 0 | 3 |
 | **Total** | **52** | **46** | **6** |
+
+### 17. AGI Self-Play Engine
+
+| ID | Requirement | Status |
+|----|-------------|--------|
+| REQ-CICD-AGI-007 | System shall implement generate-evaluate-select loop for ICD generation | ✅ Implemented |
+| REQ-CICD-AGI-008 | System shall wire CONNECTED_ICD_CONFIG with 5 scoring dimensions | ✅ Implemented |
+| REQ-CICD-AGI-009 | System shall store converged ICD artifacts as skill library exemplars | ✅ Implemented |
+| REQ-CICD-AGI-010 | System shall expose agi.generateICD MCP tool | ✅ Implemented |
+| REQ-CICD-AGI-011 | System shall expose agi.scoreICD MCP tool | ✅ Implemented |
+
+---
+
+## Requirement Summary
+
+| Area | Count | Implemented | Planned |
+|------|-------|-------------|---------|
+| Signal Management | 4 | 4 | 0 |
+| System & Connection | 4 | 4 | 0 |
+| N2 Matrix & Traceability | 3 | 3 | 0 |
+| ICD Import & Parsing | 4 | 4 | 0 |
+| Hardware ICD Templates | 2 | 2 | 0 |
+| Export | 4 | 4 | 0 |
+| Live Telemetry | 2 | 2 | 0 |
+| AI Analysis | 3 | 3 | 0 |
+| Change Control & Baselines | 3 | 3 | 0 |
+| Auth & Multi-Tenancy | 5 | 5 | 0 |
+| Artifact Interface | 1 | 1 | 0 |
+| Digital Thread | 4 | 4 | 0 |
+| MBSE Integration | 3 | 3 | 0 |
+| Cross-Product Integration | 4 | 4 | 0 |
+| AGI — RLVR Scoring | 3 | 0 | 3 |
+| AGI — Constitutional Review | 3 | 0 | 3 |
+| AGI — Self-Play Engine | 5 | 5 | 0 |
+| **Total** | **57** | **51** | **6** |
