@@ -5,6 +5,36 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import knex from 'knex';
+import { z } from 'zod';
+
+// ── Zod schemas (BE-02) ─────────────────────────────────────────
+const CreateSignalSchema = z.object({
+  name: z.string(),
+  projectId: z.string().optional(),
+  criticality: z.string().optional(),
+  status: z.string().optional(),
+  logical: z.record(z.unknown()).optional(),
+  transport: z.record(z.unknown()).optional(),
+  physical: z.record(z.unknown()).optional(),
+}).strict();
+
+const CreateBaselineSchema = z.object({
+  name: z.string(),
+  project_id: z.string().optional(),
+  status: z.string().optional(),
+}).strict();
+
+const CreateWorkflowSchema = z.object({
+  title: z.string(),
+  description: z.string().optional(),
+  status: z.string().optional(),
+  project_id: z.string().optional(),
+}).strict();
+
+const CreateCommentSchema = z.object({
+  content: z.string(),
+  author_id: z.string().optional(),
+}).strict();
 
 const PORT = parseInt(process.env.PORT ?? '4001');
 const DB_URL = process.env.DATABASE_URL ?? 'postgres://connectedflow:connectedflow_dev@localhost:5434/connectedflow';
@@ -36,7 +66,7 @@ async function main() {
   });
 
   app.post('/api/signals', async (req, reply) => {
-    const body = req.body as any;
+    const body = CreateSignalSchema.parse(req.body);
     const [signal] = await db('signal').insert({ name: body.name, project_id: body.projectId ?? 'default', criticality: body.criticality ?? 'major', status: body.status ?? 'draft' }).returning('*');
     if (body.logical) await db('logical_layer').insert({ signal_id: signal.id, ...body.logical });
     if (body.transport) await db('transport_layer').insert({ signal_id: signal.id, ...body.transport });
@@ -47,12 +77,12 @@ async function main() {
 
   // ── Baselines ──────────────────────────────────────────────────
   app.get('/api/baselines', async () => db('baseline').orderBy('created_at', 'desc'));
-  app.post('/api/baselines', async (req, reply) => { const [b] = await db('baseline').insert(req.body as any).returning('*'); reply.status(201); return b; });
+  app.post('/api/baselines', async (req, reply) => { const [b] = await db('baseline').insert(CreateBaselineSchema.parse(req.body)).returning('*'); reply.status(201); return b; });
   app.post<{ Params: { id: string } }>('/api/baselines/:id/freeze', async (req) => db('baseline').where('id', req.params.id).update({ status: 'frozen', frozen_at: new Date() }).returning('*'));
 
   // ── Workflows ──────────────────────────────────────────────────
   app.get('/api/workflows', async () => db('change_request').orderBy('created_at', 'desc'));
-  app.post('/api/workflows', async (req, reply) => { const [w] = await db('change_request').insert(req.body as any).returning('*'); reply.status(201); return w; });
+  app.post('/api/workflows', async (req, reply) => { const [w] = await db('change_request').insert(CreateWorkflowSchema.parse(req.body)).returning('*'); reply.status(201); return w; });
 
   // ── Audit ──────────────────────────────────────────────────────
   app.get('/api/audit', async (req) => { const limit = (req.query as any).limit ?? 50; return db('audit_entry').orderBy('timestamp', 'desc').limit(limit); });
@@ -77,7 +107,7 @@ async function main() {
 
   // ── Collaboration ──────────────────────────────────────────────
   app.get<{ Params: { signalId: string } }>('/api/signals/:signalId/comments', async (req) => db('signal_comment').where('signal_id', req.params.signalId).orderBy('created_at'));
-  app.post<{ Params: { signalId: string } }>('/api/signals/:signalId/comments', async (req, reply) => { const [c] = await db('signal_comment').insert({ ...(req.body as any), signal_id: req.params.signalId, id: require('crypto').randomUUID().replace(/-/g, '').slice(0, 26) }).returning('*'); reply.status(201); return c; });
+  app.post<{ Params: { signalId: string } }>('/api/signals/:signalId/comments', async (req, reply) => { const body = CreateCommentSchema.parse(req.body); const [c] = await db('signal_comment').insert({ ...body, signal_id: req.params.signalId, id: require('crypto').randomUUID().replace(/-/g, '').slice(0, 26) }).returning('*'); reply.status(201); return c; });
   app.get('/api/handshakes/pending', async () => db('signal_ownership').whereNot('handshake_status', 'approved'));
   app.get('/api/organizations', async () => db('organization').orderBy('name'));
 
