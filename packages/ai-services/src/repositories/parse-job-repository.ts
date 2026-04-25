@@ -20,6 +20,8 @@ export interface ParseJobRow {
   unmapped_field_count: number;
   created_at: Date;
   completed_at: Date | null;
+  updated_at?: Date;
+  updated_by?: string;
 }
 
 /** Valid state transitions for the parse job state machine. */
@@ -57,7 +59,7 @@ export class ParseJobRepository extends BaseRepository<ParseJobRow> {
       );
     }
 
-    const updates: Partial<ParseJobRow> = { status: newStatus };
+    const updates: Partial<ParseJobRow> = { status: newStatus, updated_at: new Date(), updated_by: 'system' };
     if (newStatus === 'confirmed' || newStatus === 'failed') {
       updates.completed_at = new Date();
     }
