@@ -1,14 +1,17 @@
 /**
- * ConnectedICD RL Actions + Dependency Graph
+ * ConnectedICD RL Actions + Dependency Graph + Logger
  *
  * Actions: generate ICD, validate interface, detect conflicts,
  * trace impact, diff versions, export for other products.
  *
- * Dependencies:
- * - ICD generation requires: system architecture + interface list
- * - Validation requires: ICD (verified)
- * - Impact analysis requires: ICD + connected requirements (from AssureFlow)
+ * Same JSON format as AssureFlow RL logger (TASK-060/063).
+ * policy_intent added per TASK-063: logs what the agent intended
+ * when a dependency gate blocks an action.
  */
+import { appendFileSync, mkdirSync, existsSync } from 'fs';
+import { dirname } from 'path';
+
+// ─── Actions ───
 
 export const CONNECTEDICD_ACTIONS = [
   'generate_icd',
@@ -20,6 +23,8 @@ export const CONNECTEDICD_ACTIONS = [
 ] as const;
 
 export type ConnectedICDAction = typeof CONNECTEDICD_ACTIONS[number];
+
+// ─── Dependency Graph ───
 
 export interface QualityGate {
   min_score: number;
@@ -33,6 +38,14 @@ export interface DependencyNode {
 }
 
 export type DependencyGraph = Record<string, DependencyNode>;
+
+export interface ArtifactState {
+  id: string;
+  type: string;
+  score: number;
+  critical_violations: number;
+  version: number;
+}
 
 export const CONNECTEDICD_DEPENDENCY_GRAPH: DependencyGraph = {
   generate_icd: {
@@ -67,15 +80,6 @@ export const CONNECTEDICD_DEPENDENCY_GRAPH: DependencyGraph = {
   },
 };
 
-// Re-export RL logger types for ConnectedICD consumers
-export interface ArtifactState {
-  id: string;
-  type: string;
-  score: number;
-  critical_violations: number;
-  version: number;
-}
-
 export function checkDependencyGate(
   action: string,
   graph: DependencyGraph,
@@ -98,4 +102,52 @@ export function checkDependencyGate(
     }
   }
   return { required: node.requires, gate_passed: allPassed, details };
+}
+
+// ─── RL Logger (same format as AssureFlow shared/rl-logger) ───
+
+export interface PolicyIntent {
+  intended_action: string;
+  intended_params: Record<string, unknown>;
+  expected_reward: number | null;
+}
+
+export interface BlockedAttempt {
+  action: string;
+  reason: string;
+  /** TASK-063: what the agent intended without the constraint */
+  policy_intent?: PolicyIntent;
+}
+
+export class RLLogger {
+  private logPath: string;
+  private step = 0;
+  private blockedAttempts: BlockedAttempt[] = [];
+
+  constructor(logPath: string) {
+    this.logPath = logPath;
+    const dir = dirname(logPath);
+    if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+  }
+
+  /** Record a blocked attempt. policyIntent captures what the agent
+   *  would have done without the constraint — used to evaluate gate tightness. */
+  recordBlocked(action: string, reason: string, policyIntent?: PolicyIntent) {
+    this.blockedAttempts.push({ action, reason, policy_intent: policyIntent });
+  }
+
+  log(entry: Record<string, unknown>): Record<string, unknown> {
+    this.step++;
+    const full = {
+      ...entry,
+      step: this.step,
+      blocked_attempts: [...this.blockedAttempts],
+      timestamp: new Date().toISOString(),
+    };
+    this.blockedAttempts = [];
+    appendFileSync(this.logPath, JSON.stringify(full) + '\n');
+    return full;
+  }
+
+  getStep() { return this.step; }
 }

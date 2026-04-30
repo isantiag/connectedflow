@@ -1,5 +1,10 @@
-import { describe, it, expect } from 'vitest';
-import { CONNECTEDICD_DEPENDENCY_GRAPH, CONNECTEDICD_ACTIONS, checkDependencyGate, type ArtifactState } from './connectedicd-rl.js';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { existsSync, unlinkSync, readFileSync } from 'fs';
+import { CONNECTEDICD_DEPENDENCY_GRAPH, CONNECTEDICD_ACTIONS, checkDependencyGate, RLLogger, type ArtifactState } from './connectedicd-rl.js';
+
+const TEST_LOG = '/tmp/test_connectedicd_rl_log.jsonl';
+beforeEach(() => { if (existsSync(TEST_LOG)) unlinkSync(TEST_LOG); });
+afterEach(() => { if (existsSync(TEST_LOG)) unlinkSync(TEST_LOG); });
 
 describe('ConnectedICD actions', () => {
   it('defines all 6 actions', () => {
@@ -53,5 +58,50 @@ describe('ConnectedICD dependency graph', () => {
   it('gate blocks when ICD missing for export', () => {
     const result = checkDependencyGate('export_icd', CONNECTEDICD_DEPENDENCY_GRAPH, []);
     expect(result.gate_passed).toBe(false);
+  });
+});
+
+describe('ConnectedICD RLLogger', () => {
+  it('logs entries to file', () => {
+    const logger = new RLLogger(TEST_LOG);
+    logger.log({ run_id: 'r1', domain: 'connectedicd', action: 'generate_icd' });
+    expect(existsSync(TEST_LOG)).toBe(true);
+    const entry = JSON.parse(readFileSync(TEST_LOG, 'utf-8').trim());
+    expect(entry.step).toBe(1);
+    expect(entry.action).toBe('generate_icd');
+    expect(entry.timestamp).toBeDefined();
+  });
+
+  it('records blocked attempt without policy_intent', () => {
+    const logger = new RLLogger(TEST_LOG);
+    logger.recordBlocked('validate_interface', 'icd score 200 < gate 280');
+    const entry = logger.log({ run_id: 'r1', domain: 'connectedicd', action: 'generate_icd' });
+    expect((entry.blocked_attempts as any[])[0].action).toBe('validate_interface');
+    expect((entry.blocked_attempts as any[])[0].policy_intent).toBeUndefined();
+  });
+
+  it('records policy_intent on blocked attempt (TASK-063)', () => {
+    const logger = new RLLogger(TEST_LOG);
+    logger.recordBlocked(
+      'validate_interface',
+      'icd score 200 < gate 280',
+      { intended_action: 'validate_interface', intended_params: { icdId: 'icd-1' }, expected_reward: 60 },
+    );
+    const entry = logger.log({ run_id: 'r1', domain: 'connectedicd', action: 'generate_icd' });
+    const blocked = (entry.blocked_attempts as any[])[0];
+    expect(blocked.policy_intent).toBeDefined();
+    expect(blocked.policy_intent.intended_action).toBe('validate_interface');
+    expect(blocked.policy_intent.expected_reward).toBe(60);
+    // Verify persisted to file
+    const logged = JSON.parse(readFileSync(TEST_LOG, 'utf-8').trim());
+    expect(logged.blocked_attempts[0].policy_intent.expected_reward).toBe(60);
+  });
+
+  it('clears blocked attempts after log()', () => {
+    const logger = new RLLogger(TEST_LOG);
+    logger.recordBlocked('validate_interface', 'reason');
+    logger.log({ run_id: 'r1', action: 'a1' });
+    const entry2 = logger.log({ run_id: 'r1', action: 'a2' });
+    expect((entry2.blocked_attempts as any[])).toHaveLength(0);
   });
 });
