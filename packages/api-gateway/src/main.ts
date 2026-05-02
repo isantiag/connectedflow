@@ -6,50 +6,21 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
 import knex from 'knex';
-import { z } from 'zod';
-
-// ── Zod schemas (BE-02) ─────────────────────────────────────────
-const CreateSignalSchema = z.object({
-  name: z.string(),
-  projectId: z.string().optional(),
-  criticality: z.string().optional(),
-  status: z.string().optional(),
-  logical: z.record(z.unknown()).optional(),
-  transport: z.record(z.unknown()).optional(),
-  physical: z.record(z.unknown()).optional(),
-}).strict();
-
-const CreateBaselineSchema = z.object({
-  name: z.string(),
-  project_id: z.string().optional(),
-  status: z.string().optional(),
-}).strict();
-
-const CreateWorkflowSchema = z.object({
-  title: z.string(),
-  description: z.string().optional(),
-  status: z.string().optional(),
-  project_id: z.string().optional(),
-}).strict();
-
-const CreateCommentSchema = z.object({
-  content: z.string(),
-  author_id: z.string().optional(),
-}).strict();
+const { CreateSignalSchema, CreateBaselineSchema, CreateWorkflowSchema, CreateCommentSchema } = require('../../schemas/src/index.js');
 
 const PORT = parseInt(process.env.PORT ?? '4001');
 const DB_URL = process.env.DATABASE_URL ?? 'postgres://connectedflow:connectedflow_dev@localhost:5434/connectedflow';
 
 async function main() {
-  // Database
-  const db = knex({ client: 'pg', connection: DB_URL, pool: { min: 2, max: 10 } });
-  try { await db.raw('SELECT 1'); console.log('✅ Database connected'); }
-  catch (e: any) { console.error('❌ Database connection failed:', e.message); process.exit(1); }
-
   // Fastify
-  const app = Fastify({ logger: false });
+  const app = Fastify({ logger: true });
   await app.register(cors, { origin: true });
   await app.register(rateLimit, { max: 100, timeWindow: '1 minute' });
+
+  // Database
+  const db = knex({ client: 'pg', connection: DB_URL, pool: { min: 2, max: 10 } });
+  try { await db.raw('SELECT 1'); app.log.info('Database connected'); }
+  catch (e: any) { app.log.error('Database connection failed: %s', e.message); process.exit(1); }
 
   // Health
   app.get('/health', async () => ({ status: 'ok', db: 'connected', timestamp: new Date().toISOString() }));
@@ -121,9 +92,9 @@ async function main() {
 
   // Start
   await app.listen({ port: PORT, host: '0.0.0.0' });
-  console.log(`🚀 ConnectedICD API running on http://localhost:${PORT}`);
-  console.log(`   Health: http://localhost:${PORT}/health`);
-  console.log(`   Signals: http://localhost:${PORT}/api/signals`);
+  app.log.info(`ConnectedICD API running on http://localhost:${PORT}`);
+  app.log.info(`Health: http://localhost:${PORT}/health`);
+  app.log.info(`Signals: http://localhost:${PORT}/api/signals`);
 }
 
-main().catch(console.error);
+main().catch((err) => { console.error(err); process.exit(1); });

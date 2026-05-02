@@ -142,6 +142,23 @@ const UpdateParameterSchema = z.object({
   function_id: z.string().uuid().nullable().optional(),
 }).strict();
 
+// === Signals ===
+const CreateSignalSchema = z.object({
+  name: z.string(),
+  projectId: z.string().optional(),
+  criticality: z.string().optional(),
+  status: z.string().optional(),
+  logical: z.record(z.unknown()).optional(),
+  transport: z.record(z.unknown()).optional(),
+  physical: z.record(z.unknown()).optional(),
+}).strict();
+
+// === Comments ===
+const CreateCommentSchema = z.object({
+  content: z.string(),
+  author_id: z.string().optional(),
+}).strict();
+
 // === Baselines ===
 const CreateBaselineSchema = z.object({
   projectId: z.string().uuid().optional(),
@@ -176,6 +193,8 @@ module.exports = {
   CreateConnectionSchema,
   CreateMessageSchema, UpdateMessageSchema,
   CreateParameterSchema, UpdateParameterSchema,
+  CreateSignalSchema,
+  CreateCommentSchema,
   CreateBaselineSchema,
   LoginSchema,
   CreateWorkflowSchema, RejectWorkflowSchema,

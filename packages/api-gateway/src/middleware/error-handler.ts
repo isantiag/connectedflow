@@ -45,5 +45,5 @@ export function errorHandler(
     body.code = 'VALIDATION_ERROR';
   }
 
-  void reply.status(statusCode).send(body);
+  void reply.status(statusCode).send({ error: body });
 }

@@ -5,6 +5,7 @@
 
 import Fastify, { type FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
+import rateLimit from '@fastify/rate-limit';
 import websocket from '@fastify/websocket';
 import { createYoga } from 'graphql-yoga';
 import { v4 as uuidv4 } from 'uuid';
@@ -44,6 +45,7 @@ export async function createServer(services: ServiceContainer): Promise<FastifyI
 
   // --- CORS ---
   await app.register(cors, { origin: true });
+  await app.register(rateLimit, { max: 100, timeWindow: '1 minute' });
 
   // --- WebSocket ---
   await app.register(websocket);
