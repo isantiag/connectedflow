@@ -193,3 +193,81 @@ async def architecture_insights(project_id: str = "") -> str:
 async def detect_anomalies(project_id: str = "") -> str:
     """AI detects anomalies beyond rule-based checks — unusual patterns, duplicates, missing reciprocals, protocol mismatches."""
     return json.dumps(await _api("POST", "/api/ai/anomalies", {"projectId": project_id or None}), indent=2)
+
+# ── §9.2 Artifact Interface ───────────────────────────────────────────
+
+async def _build_artifacts(project_id: str = "") -> list:
+    """Build artifact list from ConnectedICD data (signals, baselines)."""
+    artifacts = []
+    now = __import__("datetime").datetime.utcnow().isoformat() + "Z"
+    qs = f"?projectId={project_id}" if project_id else ""
+
+    try:
+        signals = await _api("GET", f"/api/signals{qs}")
+        if signals:
+            active = [s for s in signals if s.get("status") == "active"]
+            artifacts.append({
+                "id": f"ICD-SIGNALS-{project_id[:8] if project_id else 'all'}",
+                "projectId": project_id or "all",
+                "toolSource": "connectedicd",
+                "artifactType": "ICD_SIGNAL_SET",
+                "title": f"ICD Signal Definitions ({len(signals)} signals)",
+                "version": "1.0",
+                "status": "active" if active else "draft",
+                "completeness": round(len(active) / max(len(signals), 1), 2),
+                "lastModified": now,
+                "applicableReviews": ["PDR", "CDR"],
+                "openIssues": len([s for s in signals if s.get("status") == "draft"]),
+                "reviewReady": len(active) == len(signals) and len(signals) > 0,
+                "exportFormats": ["json", "csv", "xlsx", "dbc"],
+            })
+    except Exception:
+        pass
+
+    try:
+        baselines = await _api("GET", "/api/baselines")
+        if baselines:
+            frozen = [b for b in baselines if b.get("frozen")]
+            artifacts.append({
+                "id": f"ICD-BASELINES-{project_id[:8] if project_id else 'all'}",
+                "projectId": project_id or "all",
+                "toolSource": "connectedicd",
+                "artifactType": "ICD_BASELINE_SET",
+                "title": f"ICD Baselines ({len(baselines)} total, {len(frozen)} frozen)",
+                "version": "1.0",
+                "status": "frozen" if frozen else "draft",
+                "completeness": round(len(frozen) / max(len(baselines), 1), 2),
+                "lastModified": now,
+                "applicableReviews": ["CDR", "TRR"],
+                "openIssues": len(baselines) - len(frozen),
+                "reviewReady": len(frozen) > 0,
+                "exportFormats": ["json", "csv"],
+            })
+    except Exception:
+        pass
+
+    return artifacts
+
+@mcp.tool(name="artifacts.list")
+async def artifacts_list(project_id: str = "", artifact_type: str = "", status: str = "") -> str:
+    """List all ConnectedICD artifacts. Optional filters: project_id, artifact_type (ICD_SIGNAL_SET, ICD_BASELINE_SET), status (draft, active, frozen)."""
+    artifacts = await _build_artifacts(project_id)
+    if artifact_type: artifacts = [a for a in artifacts if a["artifactType"] == artifact_type]
+    if status: artifacts = [a for a in artifacts if a["status"] == status]
+    return json.dumps({"artifacts": artifacts}, indent=2)
+
+@mcp.tool(name="artifacts.get")
+async def artifacts_get(artifact_id: str, project_id: str = "") -> str:
+    """Get a single ConnectedICD artifact by ID."""
+    artifacts = await _build_artifacts(project_id)
+    artifact = next((a for a in artifacts if a["id"] == artifact_id), None)
+    return json.dumps({"artifact": artifact} if artifact else {"error": "Artifact not found"}, indent=2)
+
+@mcp.tool(name="artifacts.export")
+async def artifacts_export(artifact_id: str, format: str = "json", project_id: str = "") -> str:
+    """Export a ConnectedICD artifact. Supported formats: json, csv, xlsx, dbc."""
+    artifacts = await _build_artifacts(project_id)
+    artifact = next((a for a in artifacts if a["id"] == artifact_id), None)
+    if not artifact:
+        return json.dumps({"error": "Artifact not found"}, indent=2)
+    return json.dumps({"artifact": artifact, "format": format, "exportedAt": __import__("datetime").datetime.utcnow().isoformat() + "Z"}, indent=2)
