@@ -62,7 +62,7 @@ export function createBusInstanceService(db: Knex) {
   return {
     async create(input: z.infer<typeof CreateBusInstanceSchema>) {
       const id = uuidv4();
-      const canonical_id = `ee-aero.bus.${id.substring(0, 8)}`;
+      const canonical_id = `ee-aero.icd.${body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
       const [row] = await db('bus_instance')
         .insert({ id, canonical_id, ...input })
         .returning('*');

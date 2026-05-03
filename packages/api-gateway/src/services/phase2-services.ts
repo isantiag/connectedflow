@@ -110,7 +110,7 @@ export function createDeviceTemplateService(db: Knex) {
       if (!template) return null;
 
       const systemId = uuidv4();
-      const canonicalId = `ee-aero.sys.${systemId.substring(0, 8)}`;
+      const canonicalId = `ee-aero.sys.${input.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
 
       await db.transaction(async (trx) => {
         await trx('system').insert({

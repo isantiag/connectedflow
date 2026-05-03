@@ -126,7 +126,7 @@ export class SystemHierarchyService {
 
   async create(input: CreateSystemInput): Promise<SystemRow> {
     const id = uuidv4();
-    const canonicalId = `ee-aero.block.${id.substring(0, 8)}`;
+    const canonicalId = `ee-aero.sys.${(input.name || id.substring(0, 8)).toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
 
     const [row] = await this.knex('system')
       .insert({
