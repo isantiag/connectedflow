@@ -96,3 +96,13 @@ export type {
   CircuitBreakerOptions,
   RetryOptions,
 } from './startup-validator.js';
+
+export { SystemHierarchyService } from './system-hierarchy-service.js';
+export type {
+  SystemRow,
+  CreateSystemInput,
+  UpdateSystemInput,
+  SystemFilter,
+  BudgetRollup,
+  PowerModeRollup,
+} from './system-hierarchy-service.js';

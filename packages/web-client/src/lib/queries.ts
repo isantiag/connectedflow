@@ -98,6 +98,11 @@ export function useSignalValidation(id?: string) {
   return useQuery({ queryKey: ['signal-validation', id], queryFn: () => api.get<any>(`signals/${id}/validate`), enabled: !!id });
 }
 
+// === Bus Instances ===
+export function useBusInstances(projectId?: string) {
+  return useQuery({ queryKey: ['bus-instances', projectId], queryFn: () => api.get<any[]>('bus-instances', projectId ? { projectId } : undefined), enabled: !!projectId });
+}
+
 // === Live Adapters ===
 export function useLiveAdapters() {
   return useQuery({ queryKey: ['live-adapters'], queryFn: () => api.get<any[]>('live/adapters') });

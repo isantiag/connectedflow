@@ -197,7 +197,7 @@ async def detect_anomalies(project_id: str = "") -> str:
 # ── §9.2 Artifact Interface ───────────────────────────────────────────
 
 async def _build_artifacts(project_id: str = "") -> list:
-    """Build artifact list from ConnectedICD data (signals, baselines)."""
+    """Build artifact list from ConnectedICD data (signals, baselines, architecture)."""
     artifacts = []
     now = __import__("datetime").datetime.utcnow().isoformat() + "Z"
     qs = f"?projectId={project_id}" if project_id else ""
@@ -246,11 +246,62 @@ async def _build_artifacts(project_id: str = "") -> list:
     except Exception:
         pass
 
+    # ARCHITECTURE artifact — systems, connections, bus instances, budget coverage
+    try:
+        systems = await _api("GET", f"/api/systems{qs}") if project_id else []
+        bus_instances = await _api("GET", f"/api/bus-instances{qs}") if project_id else []
+        system_count = len(systems) if isinstance(systems, list) else 0
+        bus_count = len(bus_instances) if isinstance(bus_instances, list) else 0
+
+        # Budget coverage: % with mass/power defined
+        mass_defined = sum(1 for s in (systems if isinstance(systems, list) else []) if s.get("mass_kg") is not None)
+        power_defined = sum(1 for s in (systems if isinstance(systems, list) else []) if s.get("power_watts") is not None)
+        mass_pct = round(mass_defined / max(system_count, 1), 2)
+        power_pct = round(power_defined / max(system_count, 1), 2)
+
+        # Connection count from signals
+        connection_count = 0
+        try:
+            sigs = await _api("GET", f"/api/signals{qs}")
+            connection_count = len(sigs) if isinstance(sigs, list) else 0
+        except Exception:
+            pass
+
+        completeness = round((mass_pct + power_pct) / 2, 2)
+
+        artifacts.append({
+            "id": f"ARCH-MODEL-{project_id[:8] if project_id else 'all'}",
+            "projectId": project_id or "all",
+            "toolSource": "connectedicd",
+            "artifactType": "ARCHITECTURE",
+            "title": f"Architecture Model ({system_count} systems, {bus_count} buses)",
+            "version": "1.0",
+            "status": "active" if system_count > 0 else "draft",
+            "completeness": completeness,
+            "lastModified": now,
+            "applicableReviews": ["SRR", "PDR", "CDR"],
+            "openIssues": system_count - mass_defined + system_count - power_defined,
+            "reviewReady": completeness >= 0.8,
+            "exportFormats": ["json", "sysml"],
+            "metrics": {
+                "systemCount": system_count,
+                "connectionCount": connection_count,
+                "busInstanceCount": bus_count,
+                "budgetCoverage": {
+                    "massDefinedPct": mass_pct,
+                    "powerDefinedPct": power_pct,
+                },
+                "completeness": completeness,
+            },
+        })
+    except Exception:
+        pass
+
     return artifacts
 
 @mcp.tool(name="artifacts.list")
 async def artifacts_list(project_id: str = "", artifact_type: str = "", status: str = "") -> str:
-    """List all ConnectedICD artifacts. Optional filters: project_id, artifact_type (ICD_SIGNAL_SET, ICD_BASELINE_SET), status (draft, active, frozen)."""
+    """List all ConnectedICD artifacts. Optional filters: project_id, artifact_type (ICD_SIGNAL_SET, ICD_BASELINE_SET, ARCHITECTURE), status (draft, active, frozen)."""
     artifacts = await _build_artifacts(project_id)
     if artifact_type: artifacts = [a for a in artifacts if a["artifactType"] == artifact_type]
     if status: artifacts = [a for a in artifacts if a["status"] == status]
@@ -258,16 +309,54 @@ async def artifacts_list(project_id: str = "", artifact_type: str = "", status: 
 
 @mcp.tool(name="artifacts.get")
 async def artifacts_get(artifact_id: str, project_id: str = "") -> str:
-    """Get a single ConnectedICD artifact by ID."""
-    artifacts = await _build_artifacts(project_id)
-    artifact = next((a for a in artifacts if a["id"] == artifact_id), None)
-    return json.dumps({"artifact": artifact} if artifact else {"error": "Artifact not found"}, indent=2)
-
-@mcp.tool(name="artifacts.export")
-async def artifacts_export(artifact_id: str, format: str = "json", project_id: str = "") -> str:
-    """Export a ConnectedICD artifact. Supported formats: json, csv, xlsx, dbc."""
+    """Get a single ConnectedICD artifact by ID. For ARCHITECTURE artifacts, returns full systems hierarchy and bus instances."""
     artifacts = await _build_artifacts(project_id)
     artifact = next((a for a in artifacts if a["id"] == artifact_id), None)
     if not artifact:
         return json.dumps({"error": "Artifact not found"}, indent=2)
-    return json.dumps({"artifact": artifact, "format": format, "exportedAt": __import__("datetime").datetime.utcnow().isoformat() + "Z"}, indent=2)
+
+    # Enrich ARCHITECTURE artifacts with full data
+    if artifact.get("artifactType") == "ARCHITECTURE":
+        pid = artifact.get("projectId", "")
+        qs = f"?projectId={pid}" if pid and pid != "all" else ""
+        try:
+            systems = await _api("GET", f"/api/systems{qs}") if pid and pid != "all" else []
+            bus_instances = await _api("GET", f"/api/bus-instances{qs}") if pid and pid != "all" else []
+            artifact["data"] = {
+                "systems": systems if isinstance(systems, list) else [],
+                "busInstances": bus_instances if isinstance(bus_instances, list) else [],
+            }
+        except Exception:
+            artifact["data"] = {"systems": [], "busInstances": []}
+
+    return json.dumps({"artifact": artifact}, indent=2)
+
+@mcp.tool(name="artifacts.export")
+async def artifacts_export(artifact_id: str, format: str = "json", project_id: str = "") -> str:
+    """Export a ConnectedICD artifact. Supported formats: json, csv, xlsx, dbc. format=sysml returns 501 (not yet implemented)."""
+    # §3 Backend: Stubs return 501, NEVER fake 200
+    if format == "sysml":
+        return json.dumps({"error": {"code": "NOT_IMPLEMENTED", "message": "SysML export is not yet implemented"}, "status": 501}, indent=2)
+
+    artifacts = await _build_artifacts(project_id)
+    artifact = next((a for a in artifacts if a["id"] == artifact_id), None)
+    if not artifact:
+        return json.dumps({"error": "Artifact not found"}, indent=2)
+
+    export_data = {"artifact": artifact, "format": format, "exportedAt": __import__("datetime").datetime.utcnow().isoformat() + "Z"}
+
+    # For ARCHITECTURE, include full structured data
+    if artifact.get("artifactType") == "ARCHITECTURE" and format == "json":
+        pid = artifact.get("projectId", "")
+        qs = f"?projectId={pid}" if pid and pid != "all" else ""
+        try:
+            systems = await _api("GET", f"/api/systems{qs}") if pid and pid != "all" else []
+            bus_instances = await _api("GET", f"/api/bus-instances{qs}") if pid and pid != "all" else []
+            export_data["data"] = {
+                "systems": systems if isinstance(systems, list) else [],
+                "busInstances": bus_instances if isinstance(bus_instances, list) else [],
+            }
+        except Exception:
+            export_data["data"] = {"systems": [], "busInstances": []}
+
+    return json.dumps(export_data, indent=2)

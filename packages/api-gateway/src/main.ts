@@ -3,6 +3,7 @@
  * §1 Backend: Thin bootstrap only — all routes and logic in server.ts + services.
  */
 import { createServer } from './server.js';
+import { SystemHierarchyService } from '@connectedicd/core-services/src/services/system-hierarchy-service.js';
 
 const knex = require('knex');
 const PORT = parseInt(process.env.PORT ?? '4001');
@@ -60,9 +61,14 @@ async function main() {
     requirePermission: async () => {},
   };
 
+  // --- System Hierarchy Service ---
+  const systemHierarchyService = new SystemHierarchyService(db);
+
   // --- Server (all routes registered in server.ts) ---
   const app = await createServer({
     signalService, baselineService, workflowService, auditService, rbacService,
+    systemHierarchyService,
+    db,
   } as any);
 
   await app.listen({ port: PORT, host: '0.0.0.0' });

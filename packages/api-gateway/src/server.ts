@@ -19,6 +19,12 @@ import { registerWorkflowRoutes } from './routes/workflow-routes.js';
 import { registerAuditRoutes } from './routes/audit-routes.js';
 import { createGraphQLSchema } from './graphql/schema.js';
 import { registerLiveDataWs, type LiveDataWsDeps } from './ws/live-data-ws.js';
+import { registerSystemRoutes } from './routes/system-routes.js';
+import { registerPowerModeRoutes } from './routes/power-mode-routes.js';
+import { registerBusInstanceRoutes } from './routes/bus-instance-routes.js';
+import { registerProtocolValidationRoutes } from './routes/protocol-validation-routes.js';
+import type { SystemHierarchyService } from '@connectedicd/core-services/src/services/system-hierarchy-service.js';
+import type { Knex } from 'knex';
 
 // ---------------------------------------------------------------------------
 // Service container — all services injected at startup
@@ -30,7 +36,9 @@ export interface ServiceContainer {
   workflowService: WorkflowService;
   auditService: AuditService;
   baselineService: BaselineService;
+  systemHierarchyService?: SystemHierarchyService;
   liveDataWsDeps?: LiveDataWsDeps;
+  db?: Knex;
 }
 
 // ---------------------------------------------------------------------------
@@ -84,6 +92,21 @@ export async function createServer(services: ServiceContainer): Promise<FastifyI
     auditService: services.auditService,
     rbacService: services.rbacService,
   });
+
+  // --- System Hierarchy routes ---
+  if (services.systemHierarchyService) {
+    await registerSystemRoutes(app, {
+      systemHierarchyService: services.systemHierarchyService,
+      auditService: services.auditService,
+    });
+  }
+
+  // --- Architecture Model routes (Tasks 5, 6, 7) ---
+  if (services.db) {
+    await registerPowerModeRoutes(app, services.db, services.auditService);
+    await registerBusInstanceRoutes(app, services.db, services.auditService);
+    await registerProtocolValidationRoutes(app, services.db);
+  }
 
   // --- GraphQL (graphql-yoga) ---
   const yoga = createYoga({
