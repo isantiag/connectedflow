@@ -2,11 +2,14 @@
  * Excel Round-Trip REST routes — template generation, export, and import.
  */
 import type { FastifyInstance } from 'fastify';
+import type { Knex } from 'knex';
 import { ExcelService } from '@connectedicd/integration-services/src/services/excel-service.js';
+import { createSignalExportService } from '../services/signal-export-service.js';
 
 const excel = new ExcelService();
 
-export async function excelRoutes(app: FastifyInstance) {
+export async function excelRoutes(app: FastifyInstance, db: Knex) {
+  const signalExportService = createSignalExportService(db);
 
   // GET /api/signals/export-template?protocol=arinc429&projectName=Birdow
   app.get<{ Querystring: { protocol?: string; projectName?: string } }>(
@@ -25,8 +28,24 @@ export async function excelRoutes(app: FastifyInstance) {
   app.get<{ Querystring: { projectId?: string; format?: string } }>(
     '/api/signals/export',
     async (request, reply) => {
-      // TODO(NOT-IMPLEMENTED): TASK-046 — wire signal export to DB query
-      return reply.status(501).send({ error: { code: 'NOT_IMPLEMENTED', message: 'Signal export by projectId not yet wired to database' } });
+      const { projectId, format } = request.query;
+
+      if (!projectId) {
+        return reply.status(400).send({
+          error: { code: 'BAD_REQUEST', message: 'projectId query parameter is required' },
+        });
+      }
+
+      const signals = await signalExportService.exportByProject(projectId);
+
+      if (format === 'xlsx') {
+        return reply.send({
+          meta: { format: 'json', note: 'xlsx format pending — returning JSON data' },
+          data: signals,
+        });
+      }
+
+      return reply.send({ data: signals });
     }
   );
 

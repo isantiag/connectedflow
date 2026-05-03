@@ -23,6 +23,11 @@ import { registerSystemRoutes } from './routes/system-routes.js';
 import { registerPowerModeRoutes } from './routes/power-mode-routes.js';
 import { registerBusInstanceRoutes } from './routes/bus-instance-routes.js';
 import { registerProtocolValidationRoutes } from './routes/protocol-validation-routes.js';
+import { excelRoutes } from './routes/excel-routes.js';
+import { registerDeviceTemplateRoutes } from './routes/device-template-routes.js';
+import { registerAllocationRoutes } from './routes/allocation-routes.js';
+import { registerIcdExportRoutes } from './routes/icd-export-routes.js';
+import { registerSysmlRoutes } from './routes/sysml-routes.js';
 import type { SystemHierarchyService } from '@connectedicd/core-services/src/services/system-hierarchy-service.js';
 import type { Knex } from 'knex';
 
@@ -106,6 +111,12 @@ export async function createServer(services: ServiceContainer): Promise<FastifyI
     await registerPowerModeRoutes(app, services.db, services.auditService);
     await registerBusInstanceRoutes(app, services.db, services.auditService);
     await registerProtocolValidationRoutes(app, services.db);
+    await excelRoutes(app, services.db);
+    // --- Phase 2 routes ---
+    await registerDeviceTemplateRoutes(app, services.db, services.auditService);
+    await registerAllocationRoutes(app, services.db, services.auditService);
+    await registerIcdExportRoutes(app, services.db);
+    await registerSysmlRoutes(app, services.db);
   }
 
   // --- GraphQL (graphql-yoga) ---
